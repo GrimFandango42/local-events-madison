@@ -25,7 +25,14 @@
     "scraping",
     "mcp",
     "local-events",
-    "event-discovery"
+    "event-discovery",
+    "wisconsin",
+    "nextjs",
+    "chatgpt-connector",
+    "facebook-alternative",
+    "privacy-focused",
+    "venue-scraping",
+    "event-aggregation"
   ],
   "author": "Local Events Platform",
   "license": "MIT",
