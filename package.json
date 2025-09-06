@@ -1,0 +1,65 @@
+{
+  "name": "local-events",
+  "version": "1.0.0",
+  "description": "Madison event discovery platform - Facebook-free event aggregation",
+  "main": "index.js",
+  "directories": {
+    "doc": "docs"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint . --ext .ts,.tsx",
+    "typecheck": "tsc --noEmit",
+    "test": "jest",
+    "test:scraper": "node scripts/test-scrapers.js",
+    "start:collector": "node backend/services/MCPEventCollector.js",
+    "db:migrate": "prisma migrate deploy",
+    "db:generate": "prisma generate",
+    "db:seed": "node scripts/seed-database.js"
+  },
+  "keywords": [
+    "events",
+    "madison",
+    "scraping",
+    "mcp",
+    "local-events",
+    "event-discovery"
+  ],
+  "author": "Local Events Platform",
+  "license": "MIT",
+  "dependencies": {
+    "@mendable/firecrawl-js": "^4.3.3",
+    "@playwright/mcp": "^0.0.36",
+    "@prisma/client": "^5.0.0",
+    "@types/node": "^20.0.0",
+    "@types/react": "^18.0.0",
+    "lucide-react": "^0.294.0",
+    "next": "^14.0.0",
+    "playwright": "^1.56.0-alpha-1756505518000",
+    "prisma": "^5.0.0",
+    "react": "^18.0.0",
+    "react-dom": "^18.0.0",
+    "redis": "^4.0.0",
+    "tailwindcss": "^3.4.0",
+    "typescript": "^5.0.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/forms": "^0.5.10",
+    "@tailwindcss/typography": "^0.5.16",
+    "@types/jest": "^29.0.0",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "autoprefixer": "^10.4.21",
+    "eslint": "^8.0.0",
+    "eslint-config-next": "^15.5.2",
+    "eslint-config-prettier": "^10.1.8",
+    "jest": "^29.0.0",
+    "postcss": "^8.5.6",
+    "prettier": "^3.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
