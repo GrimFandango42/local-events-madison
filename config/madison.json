@@ -1,0 +1,238 @@
+{
+  "version": "1.0.0",
+  "city": {
+    "name": "madison",
+    "displayName": "Madison",
+    "tagline": "Discover the Best Events in Madison",
+    "description": "Your comprehensive guide to events, activities, and happenings in Madison, Wisconsin. From farmers markets to concerts, festivals to community gatherings - never miss what's happening in your city.",
+    "colors": {
+      "primary": "#C5050C",
+      "secondary": "#9B0000",
+      "accent": "#FFB81C",
+      "background": "#FFFFFF",
+      "text": "#2B2B2B",
+      "muted": "#6B7280"
+    },
+    "logo": {
+      "light": "/images/logos/madison-light.svg",
+      "dark": "/images/logos/madison-dark.svg",
+      "favicon": "/images/favicon/madison-favicon.ico"
+    },
+    "socialMedia": {
+      "facebook": "https://facebook.com/madisonevents",
+      "twitter": "https://twitter.com/madisonevents",
+      "instagram": "https://instagram.com/madisonevents",
+      "website": "https://cityofmadison.com"
+    }
+  },
+  "geographic": {
+    "coordinates": {
+      "lat": 43.0731,
+      "lng": -89.4012
+    },
+    "boundaries": {
+      "north": 43.2,
+      "south": 42.9,
+      "east": -89.2,
+      "west": -89.6
+    },
+    "timezone": "America/Chicago",
+    "region": "Wisconsin",
+    "country": "United States",
+    "defaultZoom": 11,
+    "radiusKm": 50
+  },
+  "features": {
+    "eventSubmission": true,
+    "userRegistration": true,
+    "eventRatings": true,
+    "eventComments": true,
+    "eventSharing": true,
+    "weatherIntegration": true,
+    "ticketIntegration": true,
+    "photoUploads": true,
+    "eventReminders": true,
+    "socialLogin": true,
+    "businessProfiles": true,
+    "eventAnalytics": true,
+    "multiLanguage": false,
+    "accessibilityMode": true
+  },
+  "integrations": {
+    "googleMaps": {
+      "apiKey": "",
+      "enabled": true
+    },
+    "weather": {
+      "apiKey": "",
+      "provider": "openweather",
+      "enabled": true
+    },
+    "analytics": {
+      "googleAnalyticsId": "",
+      "enabled": false
+    },
+    "email": {
+      "provider": "sendgrid",
+      "apiKey": "",
+      "fromEmail": "noreply@madisonevents.com",
+      "fromName": "Madison Events"
+    },
+    "ticketing": {
+      "eventbriteToken": "",
+      "enabled": false
+    },
+    "social": {
+      "facebookAppId": "",
+      "googleClientId": ""
+    }
+  },
+  "localization": {
+    "defaultLanguage": "en",
+    "supportedLanguages": ["en"],
+    "currency": "USD",
+    "dateFormat": "MM/DD/YYYY",
+    "timeFormat": "12h",
+    "firstDayOfWeek": 0
+  },
+  "customFields": {
+    "welcomeMessage": "Welcome to Madison Events - your local event discovery platform!",
+    "aboutCity": "Madison, Wisconsin is a vibrant city known for its beautiful lakes, thriving arts scene, farmer's markets, and year-round festivals. Home to the University of Wisconsin-Madison and the state capital, Madison offers something for everyone.",
+    "popularVenues": [
+      "Memorial Union Terrace",
+      "Overture Center for the Arts",
+      "Dane County Farmers' Market",
+      "Capitol Square",
+      "Henry Vilas Zoo",
+      "Olbrich Botanical Gardens",
+      "Wisconsin Union Theater",
+      "Barrymore Theatre"
+    ],
+    "eventCategories": [
+      {
+        "id": "music",
+        "name": "Music & Concerts",
+        "icon": "music-note",
+        "color": "#FF6B6B",
+        "description": "Live music, concerts, and performances"
+      },
+      {
+        "id": "food",
+        "name": "Food & Drink",
+        "icon": "restaurant",
+        "color": "#4ECDC4",
+        "description": "Food festivals, restaurant events, and culinary experiences"
+      },
+      {
+        "id": "arts",
+        "name": "Arts & Culture",
+        "icon": "palette",
+        "color": "#45B7D1",
+        "description": "Art exhibits, theater, and cultural events"
+      },
+      {
+        "id": "sports",
+        "name": "Sports & Recreation",
+        "icon": "sports-football",
+        "color": "#96CEB4",
+        "description": "Sporting events, fitness classes, and outdoor activities"
+      },
+      {
+        "id": "family",
+        "name": "Family & Kids",
+        "icon": "people",
+        "color": "#FFEAA7",
+        "description": "Family-friendly events and activities for children"
+      },
+      {
+        "id": "community",
+        "name": "Community",
+        "icon": "people-outline",
+        "color": "#DDA0DD",
+        "description": "Community gatherings, meetings, and social events"
+      },
+      {
+        "id": "business",
+        "name": "Business & Networking",
+        "icon": "briefcase",
+        "color": "#74B9FF",
+        "description": "Professional networking and business events"
+      },
+      {
+        "id": "education",
+        "name": "Education & Learning",
+        "icon": "school",
+        "color": "#A29BFE",
+        "description": "Workshops, classes, and educational events"
+      }
+    ],
+    "neighborhoodAreas": [
+      "Downtown Madison",
+      "University of Wisconsin Campus",
+      "State Street",
+      "Capitol Square",
+      "Williamson Street (Willy Street)",
+      "Monroe Street",
+      "Atwood Avenue",
+      "East Johnson Street",
+      "West Side",
+      "Fitchburg",
+      "Middleton",
+      "Sun Prairie",
+      "Verona"
+    ],
+    "seasonalFeatures": {
+      "spring": {
+        "highlightColor": "#98FB98",
+        "featuredEvents": ["Farmers Market Opening", "Art Fair on the Square"],
+        "weatherAlert": "Spring weather in Madison can be unpredictable - check event updates for weather-related changes!"
+      },
+      "summer": {
+        "highlightColor": "#FFD700",
+        "featuredEvents": ["Concerts on the Square", "Taste of Madison", "World's Largest Brat Fest"],
+        "weatherAlert": "Summer is festival season in Madison! Don't forget sunscreen and water for outdoor events."
+      },
+      "fall": {
+        "highlightColor": "#D2691E",
+        "featuredEvents": ["UW Football Games", "Apple Harvest Festival"],
+        "weatherAlert": "Fall colors are beautiful in Madison - perfect time for outdoor events and campus activities."
+      },
+      "winter": {
+        "highlightColor": "#87CEEB",
+        "featuredEvents": ["Winter Festival", "Holiday Markets", "Ice Skating"],
+        "weatherAlert": "Bundle up for winter events! Check for weather-related cancellations during snow storms."
+      }
+    },
+    "partnerships": [
+      {
+        "name": "City of Madison",
+        "logo": "/images/partners/city-madison.png",
+        "website": "https://cityofmadison.com"
+      },
+      {
+        "name": "University of Wisconsin-Madison",
+        "logo": "/images/partners/uw-madison.png",
+        "website": "https://wisc.edu"
+      },
+      {
+        "name": "Greater Madison Convention & Visitors Bureau",
+        "logo": "/images/partners/visit-madison.png",
+        "website": "https://visitmadison.com"
+      },
+      {
+        "name": "Madison Area Sports Commission",
+        "logo": "/images/partners/madison-sports.png",
+        "website": "https://madisonsports.org"
+      }
+    ]
+  },
+  "deploymentInfo": {
+    "createdAt": "2025-01-09T00:00:00Z",
+    "lastUpdated": "2025-01-09T00:00:00Z",
+    "maintainer": {
+      "name": "Madison Events Team",
+      "email": "admin@madisonevents.com",
+      "organization": "Madison Local Events Platform"
+    }
+  }
+}
