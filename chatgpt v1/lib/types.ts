@@ -33,7 +33,7 @@ export interface ApiResponse<T = any> {
   message?: string;
 }
 
-export interface PaginatedResponse<T> {
+export interface PaginatedResponse<T = any> {
   success: boolean;
   data: T[];
   pagination: {
@@ -55,12 +55,13 @@ export interface EventFilters {
   tags?: string[];
   priceMax?: number;
   search?: string;
-  neighborhood?: string;
   location?: {
     latitude: number;
     longitude: number;
     radius: number; // in meters
   };
+  // NEW: filter events by venue neighborhood
+  neighborhood?: string;
 }
 
 export interface SourceFilters {
@@ -132,6 +133,8 @@ export interface NewSourceSubmission {
   expectedEventTypes: string[];
   submissionReason: string;
   userEmail?: string;
+  // NEW: optional neighborhood field for better categorisation
+  neighborhood?: string;
 }
 
 // Dashboard stats

@@ -16,6 +16,7 @@ export async function GET(request: NextRequest) {
       tags: searchParams.get('tags')?.split(',') || undefined,
       priceMax: searchParams.get('priceMax') ? parseInt(searchParams.get('priceMax')!) : undefined,
       search: searchParams.get('search') || undefined,
+      // NEW: neighbourhood filter
       neighborhood: searchParams.get('neighborhood') || undefined,
     };
 
@@ -68,14 +69,12 @@ export async function GET(request: NextRequest) {
       ];
     }
 
-    // Filter by venue neighborhood if provided
+    // NEW: filter by venue neighbourhood if provided
     if (filters.neighborhood) {
+      // Use relation filter to constrain events whose venue has the matching neighborhood
       where.venue = {
         is: {
-          neighborhood: {
-            equals: filters.neighborhood,
-            mode: 'insensitive',
-          },
+          neighborhood: filters.neighborhood,
         },
       };
     }

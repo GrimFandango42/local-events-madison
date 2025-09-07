@@ -1,0 +1,826 @@
+// Enhanced Prisma Schema for Local Events Platform
+// Supports multi-city deployment, federation readiness, and advanced deduplication
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// =============================================================================
+// ENUMS - Enhanced with additional values for multi-city and federation support
+// =============================================================================
+
+enum SourceType {
+  government
+  local_media
+  venue
+  restaurant
+  brewery
+  distillery
+  cultural
+  university
+  community
+  custom
+  social_media
+  api_feed
+  rss_feed
+  webhook
+  federation_peer    // For ActivityPub federation
+  third_party_api
+}
+
+enum SourceStatus {
+  active
+  paused
+  failed
+  archived
+  maintenance
+  rate_limited
+}
+
+enum VenueType {
+  restaurant
+  bar
+  brewery
+  distillery
+  winery
+  coffee_shop
+  concert_hall
+  theater
+  gallery
+  museum
+  library
+  community_center
+  park
+  university_venue
+  government_facility
+  sports_venue
+  festival_ground
+  food_truck
+  market
+  popup_venue
+  outdoor_space
+  religious_venue
+  coworking_space
+  other
+}
+
+enum EventCategory {
+  food
+  music
+  culture
+  art
+  theater
+  festival
+  market
+  nightlife
+  education
+  community
+  sports
+  family
+  business
+  technology
+  health
+  politics
+  volunteer
+  religion
+  outdoor
+  other
+}
+
+enum ScrapingMethod {
+  mcp_playwright
+  crawlee
+  crawl4ai
+  api_official
+  rss_feed
+  manual
+  webhook
+  federation_activitypub  // ActivityPub federation
+  graphql_api
+  rest_api
+}
+
+enum UserRole {
+  viewer          // Can view events only
+  contributor     // Can submit venues/sources
+  moderator      // Can approve submissions
+  admin          // Full system access
+  city_admin     // Admin for specific city/region
+}
+
+enum SubscriptionType {
+  email_daily
+  email_weekly
+  push_notification
+  rss_feed
+  webhook
+  sms
+}
+
+enum DeduplicationStatus {
+  unique          // Not a duplicate
+  potential      // Flagged for review
+  confirmed      // Confirmed duplicate
+  merged         // Merged with canonical event
+}
+
+// =============================================================================
+// MULTI-CITY SUPPORT MODELS
+// =============================================================================
+
+// Regional configuration for multi-city deployment
+model Region {
+  id                String @id @default(cuid())
+  name              String // e.g., "Wisconsin", "Midwest", "United States"
+  code              String @unique // e.g., "WI", "MW", "US"
+  timezone          String @default("America/Chicago")
+  
+  // Federation settings
+  federationEnabled Boolean @default(false) @map("federation_enabled")
+  activityPubHandle String? @unique @map("activitypub_handle") // e.g., "@madison@events.wi"
+  
+  // Metadata
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+  
+  // Relationships
+  cities            City[]
+  
+  @@map("regions")
+}
+
+// City-specific configuration for easy forking to other cities
+model City {
+  id                String @id @default(cuid())
+  name              String // e.g., "Madison", "Milwaukee", "Green Bay"
+  slug              String @unique // URL-friendly: "madison", "milwaukee"
+  state             String // e.g., "WI", "IL", "MN"
+  country           String @default("US")
+  
+  // Geographic data
+  latitude          Decimal? @db.Decimal(10, 8)
+  longitude         Decimal? @db.Decimal(11, 8)
+  timezone          String @default("America/Chicago")
+  
+  // City-specific configuration
+  defaultRadius     Int @default(25) @map("default_radius") // Default search radius in miles
+  primaryLanguage   String @default("en") @map("primary_language")
+  currency          String @default("USD")
+  
+  // Branding and customization
+  displayName       String? @map("display_name") // "Greater Madison Area"
+  tagline           String?
+  description       String?
+  logoUrl           String? @map("logo_url")
+  heroImageUrl      String? @map("hero_image_url")
+  primaryColor      String? @map("primary_color") // Hex color for theming
+  
+  // Regional association
+  regionId          String? @map("region_id")
+  region            Region? @relation(fields: [regionId], references: [id])
+  
+  // Instance configuration
+  isActive          Boolean @default(true) @map("is_active")
+  maintenanceMode   Boolean @default(false) @map("maintenance_mode")
+  publicInstance    Boolean @default(true) @map("public_instance") // Whether open to public
+  
+  // Federation settings
+  federationEnabled Boolean @default(false) @map("federation_enabled")
+  activityPubId     String? @unique @map("activitypub_id") // Full ActivityPub ID
+  federationInbox   String? @map("federation_inbox") // ActivityPub inbox URL
+  publicKey         String? @map("public_key") // For ActivityPub signatures
+  privateKey        String? @map("private_key") // Encrypted
+  
+  // Contact information
+  adminEmail        String? @map("admin_email")
+  supportEmail      String? @map("support_email")
+  websiteUrl        String? @map("website_url")
+  
+  // Metadata
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+  
+  // Relationships
+  neighborhoods     Neighborhood[]
+  venues            Venue[]
+  events            Event[]
+  eventSources      EventSource[]
+  users             User[]
+  scrapingLogs      ScrapingLog[]
+  
+  @@map("cities")
+}
+
+// Normalized neighborhoods for better venue organization
+model Neighborhood {
+  id              String @id @default(cuid())
+  name            String // e.g., "East Side", "Downtown", "West Side"
+  slug            String // URL-friendly version
+  displayName     String? @map("display_name") // "Historic East Side"
+  
+  // Geographic data
+  centerLatitude  Decimal? @db.Decimal(10, 8) @map("center_latitude")
+  centerLongitude Decimal? @db.Decimal(11, 8) @map("center_longitude")
+  boundaryPolygon Json? @map("boundary_polygon") // GeoJSON polygon
+  
+  // City association
+  cityId          String @map("city_id")
+  city            City @relation(fields: [cityId], references: [id], onDelete: Cascade)
+  
+  // Metadata
+  description     String?
+  isActive        Boolean @default(true) @map("is_active")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+  
+  // Relationships
+  venues          Venue[]
+  
+  @@unique([slug, cityId]) // Unique slug per city
+  @@map("neighborhoods")
+}
+
+// =============================================================================
+// USER MANAGEMENT AND PRIVACY-FOCUSED MODELS
+// =============================================================================
+
+// Privacy-focused user model with minimal data collection
+model User {
+  id                    String @id @default(cuid())
+  
+  // Minimal required data
+  email                 String? @unique // Optional for privacy
+  hashedEmail           String? @unique @map("hashed_email") // SHA-256 for deduplication
+  role                  UserRole @default(viewer)
+  
+  // Privacy-focused fields
+  pseudonym             String? // User-chosen display name
+  isAnonymous           Boolean @default(true) @map("is_anonymous")
+  dataRetentionConsent  Boolean @default(false) @map("data_retention_consent")
+  marketingConsent      Boolean @default(false) @map("marketing_consent")
+  
+  // City association for multi-city instances
+  primaryCityId         String? @map("primary_city_id")
+  primaryCity           City? @relation(fields: [primaryCityId], references: [id])
+  
+  // Account management
+  isActive              Boolean @default(true) @map("is_active")
+  emailVerified         Boolean @default(false) @map("email_verified")
+  lastLoginAt           DateTime? @map("last_login_at")
+  
+  // Privacy settings
+  allowsEmailUpdates    Boolean @default(false) @map("allows_email_updates")
+  allowsDataCollection  Boolean @default(false) @map("allows_data_collection")
+  
+  // Metadata
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+  deletedAt             DateTime? @map("deleted_at") // Soft delete for GDPR compliance
+  
+  // Relationships
+  subscriptions         UserSubscription[]
+  preferences           UserPreference[]
+  sourceSubmissions     UserSourceSubmission[]
+  auditLogs             AuditLog[]
+  
+  @@map("users")
+}
+
+// User preferences for personalization
+model UserPreference {
+  id                String @id @default(cuid())
+  userId            String @map("user_id")
+  user              User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Preference data
+  key               String // e.g., "favorite_categories", "default_radius"
+  value             Json   // Flexible JSON storage for various preference types
+  
+  // Metadata
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+  
+  @@unique([userId, key])
+  @@map("user_preferences")
+}
+
+// User subscriptions for notifications
+model UserSubscription {
+  id                String @id @default(cuid())
+  userId            String @map("user_id")
+  user              User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Subscription details
+  type              SubscriptionType
+  endpoint          String? // Email, phone number, webhook URL, etc.
+  
+  // Filters and preferences
+  categories        EventCategory[] // Which event categories to include
+  neighborhoodIds   String[] @map("neighborhood_ids") // Which neighborhoods
+  keywords          String[] // Keyword filters
+  priceRange        Json? @map("price_range") // Min/max price filters
+  
+  // Scheduling
+  frequency         String @default("weekly") // daily, weekly, monthly
+  timeOfDay         String? @map("time_of_day") // HH:MM format
+  timezone          String @default("America/Chicago")
+  lastSent          DateTime? @map("last_sent")
+  nextSend          DateTime? @map("next_send")
+  
+  // Status
+  isActive          Boolean @default(true) @map("is_active")
+  deliveryFailures  Int @default(0) @map("delivery_failures")
+  
+  // Metadata
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+  
+  @@map("user_subscriptions")
+}
+
+// =============================================================================
+// ENHANCED VENUE MODEL
+// =============================================================================
+
+model Venue {
+  id                    String @id @default(cuid())
+  name                  String
+  slug                  String // URL-friendly version
+  venueType             VenueType @map("venue_type")
+  
+  // Location data with city/neighborhood relationships
+  address               String?
+  cityId                String @map("city_id")
+  city                  City @relation(fields: [cityId], references: [id])
+  neighborhoodId        String? @map("neighborhood_id")
+  neighborhood          Neighborhood? @relation(fields: [neighborhoodId], references: [id])
+  
+  // Precise coordinates
+  zipCode               String? @map("zip_code")
+  latitude              Decimal? @db.Decimal(10, 8)
+  longitude             Decimal? @db.Decimal(11, 8)
+  plusCode              String? @map("plus_code") // Google Plus Code for precise location
+  
+  // Contact information
+  website               String?
+  phone                 String?
+  email                 String?
+  bookingUrl            String? @map("booking_url")
+  menuUrl               String? @map("menu_url")
+  
+  // Social media - enhanced with more platforms
+  instagramHandle       String? @map("instagram_handle")
+  facebookPage          String? @map("facebook_page")
+  twitterHandle         String? @map("twitter_handle")
+  linkedinPage          String? @map("linkedin_page")
+  tiktokHandle          String? @map("tiktok_handle")
+  youtubeChannel        String? @map("youtube_channel")
+  
+  // Business details
+  description           String?
+  hoursOperation        Json? @map("hours_of_operation") // Enhanced structure
+  priceRange            String? @map("price_range")
+  cuisineType           String? @map("cuisine_type")
+  capacity              Int?
+  accessibility         Json? // Accessibility features
+  amenities             String[] // WiFi, parking, etc.
+  
+  // Event hosting details
+  hostsEvents           Boolean @default(true) @map("hosts_events")
+  eventCalendarUrl      String? @map("event_calendar_url")
+  typicalEventTypes     String[] @map("typical_event_types")
+  privateEventCapable   Boolean @default(false) @map("private_event_capable")
+  
+  // Business verification and quality
+  verified              Boolean @default(false)
+  claimedByOwner        Boolean @default(false) @map("claimed_by_owner")
+  businessLicense       String? @map("business_license")
+  taxId                 String? @map("tax_id") // For business verification
+  
+  // Photos and media
+  logoUrl               String? @map("logo_url")
+  heroImageUrl          String? @map("hero_image_url")
+  photoUrls             String[] @map("photo_urls")
+  
+  // SEO and metadata
+  metaTitle             String? @map("meta_title")
+  metaDescription       String? @map("meta_description")
+  tags                  String[] // For categorization and search
+  
+  // Relationships
+  eventSources          EventSource[]
+  events                Event[]
+  
+  // Metadata
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+  notes                 String?
+  
+  @@unique([slug, cityId]) // Unique slug per city
+  @@map("venues")
+}
+
+// =============================================================================
+// ENHANCED EVENT SOURCE MODEL
+// =============================================================================
+
+model EventSource {
+  id                    String @id @default(cuid())
+  name                  String
+  url                   String
+  sourceType            SourceType @map("source_type")
+  scrapingMethod        ScrapingMethod @default(mcp_playwright) @map("scraping_method")
+  
+  // City association for multi-city support
+  cityId                String @map("city_id")
+  city                  City @relation(fields: [cityId], references: [id])
+  
+  // Association with venues
+  venueId               String? @map("venue_id")
+  venue                 Venue? @relation(fields: [venueId], references: [id], onDelete: SetNull)
+  
+  // Enhanced scraping configuration
+  scrapingConfig        Json @default("{}") @map("scraping_config")
+  extractionRules       Json @default("{}") @map("extraction_rules")
+  headerConfig          Json? @map("header_config") // Custom headers
+  authConfig            Json? @map("auth_config") // Authentication details (encrypted)
+  
+  // Advanced scheduling
+  scrapeFrequencyHours  Int @default(6) @map("scrape_frequency_hours")
+  schedulePattern       String? @map("schedule_pattern") // Cron-like pattern
+  priorityScore         Int @default(5) @map("priority_score") // 1-10 for scraping priority
+  
+  // Performance and reliability tracking
+  lastScraped           DateTime? @map("last_scraped")
+  nextScrapeDue         DateTime? @map("next_scrape_due")
+  status                SourceStatus @default(active)
+  successRate           Decimal @default(100.00) @db.Decimal(5, 2) @map("success_rate")
+  lastSuccess           DateTime? @map("last_success")
+  failureCount          Int @default(0) @map("failure_count")
+  consecutiveFailures   Int @default(0) @map("consecutive_failures")
+  
+  // Content analysis and quality metrics
+  typicalEventCount     Int @default(0) @map("typical_event_count")
+  eventKeywords         String[] @map("event_keywords")
+  contentStructureNotes String? @map("content_structure_notes")
+  dataQualityScore      Decimal @default(5.00) @db.Decimal(3, 2) @map("data_quality_score")
+  
+  // Rate limiting and politeness
+  requestDelay          Int @default(1000) @map("request_delay") // Milliseconds between requests
+  respectsRobotsTxt     Boolean @default(true) @map("respects_robots_txt")
+  
+  // User management and approval
+  addedByUserId         String? @map("added_by_user_id")
+  isCustomSource        Boolean @default(false) @map("is_custom_source")
+  approvalStatus        String @default("approved") @map("approval_status")
+  moderatorNotes        String? @map("moderator_notes")
+  
+  // Federation support
+  federationSourceId    String? @map("federation_source_id") // For ActivityPub sources
+  federationActorUrl    String? @map("federation_actor_url")
+  
+  // Relationships
+  events                Event[]
+  scrapingLogs          ScrapingLog[]
+  userSubmissions       UserSourceSubmission[]
+  
+  // Metadata
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+  notes                 String?
+  
+  @@unique([url, cityId]) // Same URL can exist in different cities
+  @@map("event_sources")
+}
+
+// =============================================================================
+// ENHANCED EVENT MODEL WITH DEDUPLICATION
+// =============================================================================
+
+model Event {
+  id                    String @id @default(cuid())
+  title                 String
+  slug                  String? // URL-friendly version
+  description           String?
+  shortDescription      String? @map("short_description") // For cards/previews
+  category              EventCategory
+  subcategory           String? // More specific categorization
+  
+  // Timing with enhanced flexibility
+  startDateTime         DateTime @map("start_datetime")
+  endDateTime           DateTime? @map("end_datetime")
+  timezone              String @default("America/Chicago")
+  allDay                Boolean @default(false) @map("all_day")
+  
+  // Recurring events support
+  recurring             Boolean @default(false)
+  recurrenceRule        String? @map("recurrence_rule") // RRULE format
+  recurringEventId      String? @map("recurring_event_id") // Parent event for series
+  isRecurringInstance   Boolean @default(false) @map("is_recurring_instance")
+  
+  // Location with city association
+  cityId                String @map("city_id")
+  city                  City @relation(fields: [cityId], references: [id])
+  venueId               String? @map("venue_id")
+  venue                 Venue? @relation(fields: [venueId], references: [id], onDelete: SetNull)
+  customLocation        String? @map("custom_location")
+  locationNotes         String? @map("location_notes")
+  isVirtualEvent        Boolean @default(false) @map("is_virtual_event")
+  virtualEventUrl       String? @map("virtual_event_url")
+  
+  // Enhanced pricing information
+  isFree                Boolean @default(false) @map("is_free")
+  priceMin              Int? @map("price_min") // In cents
+  priceMax              Int? @map("price_max")
+  priceDescription      String? @map("price_description")
+  ticketUrl             String? @map("ticket_url")
+  registrationUrl       String? @map("registration_url")
+  registrationRequired  Boolean @default(false) @map("registration_required")
+  soldOut               Boolean @default(false) @map("sold_out")
+  
+  // Rich content and media
+  imageUrl              String? @map("image_url")
+  imageUrls             String[] @map("image_urls") // Multiple images
+  videoUrl              String? @map("video_url")
+  bannerImageUrl        String? @map("banner_image_url")
+  
+  // Event details
+  tags                  String[]
+  ageRestriction        String? @map("age_restriction")
+  capacity              Int?
+  expectedAttendance    Int? @map("expected_attendance")
+  dresscode             String?
+  language              String @default("en")
+  
+  // Organizer information
+  organizerName         String? @map("organizer_name")
+  organizerEmail        String? @map("organizer_email")
+  organizerPhone        String? @map("organizer_phone")
+  organizerUrl          String? @map("organizer_url")
+  
+  // Source tracking with enhanced metadata
+  sourceId              String? @map("source_id")
+  source                EventSource? @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+  sourceUrl             String? @map("source_url")
+  externalId            String? @map("external_id")
+  originalSourceData    Json? @map("original_source_data") // Raw scraped data
+  
+  // DEDUPLICATION SYSTEM
+  deduplicationHash     String? @map("deduplication_hash") // Hash of key event properties
+  contentHash           String? @map("content_hash") // Hash of full content
+  titleHash             String? @map("title_hash") // Hash of normalized title
+  timeLocationHash      String? @map("time_location_hash") // Hash of time + location
+  deduplicationStatus   DeduplicationStatus @default(unique) @map("deduplication_status")
+  canonicalEventId      String? @map("canonical_event_id") // Points to master event if duplicate
+  canonicalEvent        Event? @relation("EventDeduplication", fields: [canonicalEventId], references: [id])
+  duplicateEvents       Event[] @relation("EventDeduplication")
+  similarityScore       Decimal? @default(0.00) @db.Decimal(5, 4) @map("similarity_score")
+  
+  // Data quality and verification
+  confidenceScore       Decimal @default(1.00) @db.Decimal(3, 2) @map("confidence_score")
+  manualReview          Boolean @default(false) @map("manual_review")
+  verified              Boolean @default(false)
+  moderationStatus      String @default("approved") // pending, approved, rejected, flagged
+  moderatorNotes        String? @map("moderator_notes")
+  
+  // SEO and discovery
+  metaTitle             String? @map("meta_title")
+  metaDescription       String? @map("meta_description")
+  searchKeywords        String[] @map("search_keywords")
+  
+  // Analytics and engagement
+  viewCount             Int @default(0) @map("view_count")
+  clickCount            Int @default(0) @map("click_count")
+  shareCount            Int @default(0) @map("share_count")
+  
+  // Status and lifecycle
+  isActive              Boolean @default(true) @map("is_active")
+  isCancelled           Boolean @default(false) @map("is_cancelled")
+  cancellationReason    String? @map("cancellation_reason")
+  isPostponed           Boolean @default(false) @map("is_postponed")
+  newDateTime           DateTime? @map("new_datetime") // If postponed
+  
+  // Federation support
+  activityPubId         String? @unique @map("activitypub_id") // For ActivityPub federation
+  federationSourceUrl   String? @map("federation_source_url")
+  
+  // Metadata
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+  scrapedAt             DateTime? @map("scraped_at")
+  publishedAt           DateTime? @map("published_at") // When event was made public
+  
+  @@unique([slug, cityId]) // Unique slug per city
+  @@index([deduplicationHash]) // For duplicate detection
+  @@index([titleHash]) // For title-based deduplication
+  @@index([timeLocationHash]) // For time-location based deduplication
+  @@index([startDateTime, cityId]) // For time-based queries
+  @@index([category, cityId]) // For category filtering
+  @@map("events")
+}
+
+// =============================================================================
+// ENHANCED SCRAPING AND MONITORING
+// =============================================================================
+
+model ScrapingLog {
+  id                    String @id @default(cuid())
+  sourceId              String @map("source_id")
+  source                EventSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  
+  // City context for multi-city deployments
+  cityId                String @map("city_id")
+  city                  City @relation(fields: [cityId], references: [id])
+  
+  // Execution details
+  startedAt             DateTime @map("started_at")
+  completedAt           DateTime? @map("completed_at")
+  status                String // success, failure, timeout, rate_limited, blocked
+  scrapingMethod        ScrapingMethod @map("scraping_method")
+  
+  // Enhanced results tracking
+  eventsFound           Int @default(0) @map("events_found")
+  eventsNew             Int @default(0) @map("events_new")
+  eventsUpdated         Int @default(0) @map("events_updated")
+  eventsSkipped         Int @default(0) @map("events_skipped")
+  duplicatesFound       Int @default(0) @map("duplicates_found")
+  duplicatesMerged      Int @default(0) @map("duplicates_merged")
+  
+  // Performance metrics
+  durationMs            Int? @map("duration_ms")
+  bytesDownloaded       Int? @map("bytes_downloaded")
+  requestsMade          Int? @map("requests_made")
+  memoryUsage           Int? @map("memory_usage") // Peak memory usage in MB
+  cpuTime               Int? @map("cpu_time") // CPU time in ms
+  
+  // Enhanced error tracking
+  errorMessage          String? @map("error_message")
+  errorType             String? @map("error_type")
+  errorCode             String? @map("error_code")
+  stackTrace            String? @map("stack_trace")
+  warningsCount         Int @default(0) @map("warnings_count")
+  warnings              Json? // Array of warning messages
+  
+  // Content analysis and changes
+  contentHash           String? @map("content_hash")
+  pageTitle             String? @map("page_title")
+  responseStatus        Int? @map("response_status")
+  contentLength         Int? @map("content_length")
+  contentChanged        Boolean @default(false) @map("content_changed")
+  structuralChanges     Json? @map("structural_changes") // Schema/structure changes detected
+  
+  // Quality metrics
+  dataQualityScore      Decimal? @db.Decimal(3, 2) @map("data_quality_score")
+  extractionAccuracy    Decimal? @db.Decimal(3, 2) @map("extraction_accuracy")
+  completenessScore     Decimal? @db.Decimal(3, 2) @map("completeness_score")
+  
+  // Bot detection and politeness
+  botDetected           Boolean @default(false) @map("bot_detected")
+  rateLimited           Boolean @default(false) @map("rate_limited")
+  userAgent             String? @map("user_agent")
+  ipAddress             String? @map("ip_address")
+  
+  // Metadata
+  createdAt             DateTime @default(now()) @map("created_at")
+  
+  @@map("scraping_logs")
+}
+
+// =============================================================================
+// USER SUBMISSIONS AND COMMUNITY FEATURES
+// =============================================================================
+
+model UserSourceSubmission {
+  id                    String @id @default(cuid())
+  
+  // Submitted source details
+  suggestedName         String @map("suggested_name")
+  url                   String
+  sourceType            SourceType? @map("source_type")
+  venueName             String? @map("venue_name")
+  
+  // Enhanced location data
+  cityId                String? @map("city_id")
+  neighborhoodId        String? @map("neighborhood_id")
+  address               String?
+  
+  // Submission context with privacy protection
+  userIpAddress         String? @map("user_ip_address")
+  userEmail             String? @map("user_email")
+  submissionReason      String? @map("submission_reason")
+  expectedEventTypes    String[] @map("expected_event_types")
+  additionalNotes       String? @map("additional_notes")
+  
+  // Enhanced review process
+  status                String @default("pending") // pending, approved, rejected, needs_info
+  priority              Int @default(5) @map("priority") // 1-10 priority for review
+  reviewedBy            String? @map("reviewed_by")
+  reviewedAt            DateTime? @map("reviewed_at")
+  reviewNotes           String? @map("review_notes")
+  
+  // Quality assessment
+  qualityScore          Decimal? @db.Decimal(3, 2) @map("quality_score")
+  duplicateCheck        Boolean @default(false) @map("duplicate_check")
+  automaticFlags        String[] @map("automatic_flags") // System-generated flags
+  
+  // If approved, link to created records
+  createdVenueId        String? @map("created_venue_id")
+  createdSourceId       String? @map("created_source_id")
+  createdSource         EventSource? @relation(fields: [createdSourceId], references: [id])
+  
+  // Community features
+  upvotes               Int @default(0)
+  downvotes             Int @default(0)
+  communityScore        Decimal @default(0.00) @db.Decimal(5, 2) @map("community_score")
+  
+  // Metadata
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
+  
+  @@map("user_source_submissions")
+}
+
+// =============================================================================
+// SYSTEM MONITORING AND AUDIT
+// =============================================================================
+
+// Audit log for tracking administrative actions and data changes
+model AuditLog {
+  id          String @id @default(cuid())
+  
+  // Action details
+  action      String // create, update, delete, approve, reject, merge, etc.
+  entityType  String @map("entity_type") // event, venue, source, user, etc.
+  entityId    String @map("entity_id")
+  
+  // User context
+  userId      String? @map("user_id")
+  user        User? @relation(fields: [userId], references: [id])
+  userRole    UserRole? @map("user_role")
+  
+  // Request context
+  ipAddress   String? @map("ip_address")
+  userAgent   String? @map("user_agent")
+  sessionId   String? @map("session_id")
+  
+  // Change details
+  beforeData  Json? @map("before_data") // State before change
+  afterData   Json? @map("after_data")  // State after change
+  changeSet   Json? @map("change_set")  // Specific fields changed
+  
+  // Metadata
+  notes       String?
+  createdAt   DateTime @default(now()) @map("created_at")
+  
+  @@map("audit_logs")
+}
+
+// System health and performance monitoring
+model SystemMetric {
+  id              String @id @default(cuid())
+  
+  // Metric identification
+  metricName      String @map("metric_name") // cpu_usage, memory_usage, db_connections, etc.
+  category        String // system, database, application, scraping
+  
+  // City context for multi-city deployments
+  cityId          String? @map("city_id")
+  
+  // Metric data
+  value           Decimal @db.Decimal(15, 6)
+  unit            String // percent, bytes, count, ms, etc.
+  
+  // Context and metadata
+  tags            Json? // Additional context as key-value pairs
+  source          String? // Which component reported this metric
+  
+  // Timestamps
+  recordedAt      DateTime @map("recorded_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+  
+  @@index([metricName, recordedAt])
+  @@index([category, recordedAt])
+  @@map("system_metrics")
+}
+
+// =============================================================================
+// ADVANCED INDEXES FOR PERFORMANCE
+// =============================================================================
+
+// Additional indexes are automatically created by Prisma based on:
+// - Foreign key relationships
+// - Unique constraints
+// - Custom @@index directives specified above
+
+// Key performance indexes:
+// - Events: startDateTime + cityId (for time-based queries)
+// - Events: category + cityId (for category filtering) 
+// - Events: deduplicationHash (for duplicate detection)
+// - Venues: slug + cityId (for URL routing)
+// - EventSources: url + cityId (for source uniqueness per city)
+// - ScrapingLogs: sourceId + startedAt (for monitoring)
+// - SystemMetrics: metricName + recordedAt (for time series data)
