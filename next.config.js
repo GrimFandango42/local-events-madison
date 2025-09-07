@@ -69,19 +69,29 @@ const nextConfig = {
     return config;
   },
   async headers() {
-    // Enhanced CSP with nonce support and stricter policies (2025 best practices)
+    // CSP tuned for Next.js dev/prod. We allow 'unsafe-inline' to avoid hydration failures,
+    // and enable ws:/blob: for HMR and workers. Tighten later with nonces if needed.
+    const dev = process.env.NODE_ENV !== 'production';
+    const scriptSrc = dev
+      ? "script-src 'self' 'unsafe-eval' 'unsafe-inline' blob:"
+      : "script-src 'self' 'unsafe-eval' 'unsafe-inline' blob:";
+    const connectSrc = dev
+      ? "connect-src 'self' https://api.anthropic.com ws:"
+      : "connect-src 'self' https://api.anthropic.com";
+    const workerSrc = "worker-src 'self' blob:";
+
     const csp = [
       "default-src 'self'",
       "img-src 'self' data: https: blob:",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
-      "script-src 'self' 'unsafe-eval'", // Remove unsafe-inline in production
-      "connect-src 'self' https://api.anthropic.com", // Add specific API endpoints
+      scriptSrc,
+      connectSrc,
       "font-src 'self' https://fonts.gstatic.com data:",
+      workerSrc,
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",
-      "frame-ancestors 'none'",
-      "upgrade-insecure-requests"
+      "frame-ancestors 'none'"
     ].join('; ');
     
     return [
