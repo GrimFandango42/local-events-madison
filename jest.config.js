@@ -1,13 +1,6 @@
-// Jest configuration for Local Events Platform
-const nextJest = require('next/jest');
-
-const createJestConfig = nextJest({
-  // Provide the path to your Next.js app to load next.config.js and .env files
-  dir: './',
-});
-
-// Add any custom config to be passed to Jest
-const customJestConfig = {
+// Jest configuration for Local Events Platform (standalone, avoids next/jest SWC on Windows)
+/** @type {import('jest').Config} */
+const config = {
   setupFilesAfterEnv: ['<rootDir>/tests/setup.ts'],
   testEnvironment: 'node',
   testMatch: [
@@ -22,7 +15,7 @@ const customJestConfig = {
     '!**/node_modules/**',
     '!**/.next/**',
   ],
-  moduleNameMapping: {
+  moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
   },
   testTimeout: 10000,
@@ -37,6 +30,4 @@ const customJestConfig = {
   ],
   moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json'],
 };
-
-// createJestConfig is exported this way to ensure that next/jest can load the Next.js config which is async
-module.exports = createJestConfig(customJestConfig);
+module.exports = config;

@@ -68,9 +68,9 @@ npm install
 # Run the interactive city setup wizard
 npm run setup:city
 
-# Set up your database
+# Set up your database (SQLite dev)
 npm run db:generate
-npm run db:migrate
+npm run db:push
 npm run db:seed
 
 # Launch your city's platform
@@ -360,3 +360,51 @@ Found a security vulnerability? Please email security@localevents.platform inste
 **[⭐ Star this project](https://github.com/GrimFandango42/local-events-madison)** if you found it useful!
 
 </div>
+
+---
+
+## 🆓 100% Free Local Setup
+
+- Run scraping locally with Playwright (MCP) and store data in SQLite. No vendors, no API fees.
+- One-shot scrape: `npm run scrape:once` (processes sources due and exits).
+- Schedule for free:
+  - Windows Task Scheduler: run `npm run scrape:once` every 6 hours.
+  - macOS/Linux cron: `0 */6 * * * cd /path/to/repo && npm run scrape:once`.
+- Tips: keep wait times conservative, respect robots.txt, and prefer venue RSS/ICS.
+
+## 🔒 Privacy & Authentication (Instagram/Facebook)
+
+- Goal: use authentication only to verify identity and access official APIs, with minimal scopes, no client SDKs, and no location permissions.
+- Instagram
+  - Use Instagram Graph API for your own Business/Creator account (linked to a Facebook Page). Free at personal scale.
+  - No public “events” API; useful for your own media/mentions only. Avoid personal-session scraping (ToS risk).
+  - Minimize scopes (e.g., `instagram_basic`, `pages_show_list`), make server-side calls only.
+- Facebook
+  - Events API is limited; generally only for pages you manage. Public event aggregation via API is not feasible.
+  - Use server-side Graph API with minimal scopes (e.g., `pages_read_engagement`). Avoid embedding Meta SDKs.
+
+Recommended:
+- Prefer venue websites, JSON-LD, RSS/ICS. Use IG/FB APIs only for pages/accounts you manage.
+- Keep scopes minimal; avoid requesting location or analytics scopes. Do not use logged-in scraping.
+
+## 💸 Cost Gradients & Upgrades
+
+- Free (personal)
+  - Scraping: Playwright locally (MCP). DB: SQLite. Hosting: local or free frontend tier.
+  - Monitoring optional (UptimeRobot free). No proxies.
+- Low cost (~$6–$12/mo)
+  - Single VPS for 24×7 scraping + API. Optional managed Postgres (~$5–$15/mo) if you outgrow SQLite.
+- Reliability upgrades (as needed)
+  - Proxies/anti-bot ($10–$50+/mo), managed crawling (e.g., Firecrawl ~$16–$80/mo), email beyond free tiers, maps/geocoding beyond free tiers.
+
+What you gain:
+- VPS: always-on collection and stable public API.
+- Postgres/Redis: more concurrency and job queues.
+- Proxies/managed crawlers: higher success rate on tough sites.
+
+## 🧭 Maximizing Free Scraping
+
+- Start with venue sites and JSON-LD; add selectors per source for precision.
+- Prefer RSS/ICS feeds where available.
+- Keep scrape cadence modest; stagger sources; handle failures with retries.
+- Avoid logged-in scraping; adhere to site policies.

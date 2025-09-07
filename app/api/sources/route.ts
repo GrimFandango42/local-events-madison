@@ -2,6 +2,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import type { SourceFilters, PaginatedResponse, EventSourceWithStats } from '@/lib/types';
+import type { Prisma } from '@prisma/client';
 
 export async function GET(request: NextRequest) {
   try {
@@ -15,13 +16,17 @@ export async function GET(request: NextRequest) {
       search: searchParams.get('search') || undefined,
     };
 
-    // Pagination
-    const page = parseInt(searchParams.get('page') || '1');
-    const limit = Math.min(parseInt(searchParams.get('limit') || '20'), 100);
+    // Pagination (use same defaults as events)
+    const parseIntSafe = (value: string | null, def: number) => {
+      const n = parseInt(String(value ?? ''));
+      return Number.isFinite(n) && n > 0 ? n : def;
+    };
+    const page = parseIntSafe(searchParams.get('page'), 1);
+    const limit = Math.min(parseIntSafe(searchParams.get('limit'), 10), 100);
     const skip = (page - 1) * limit;
 
     // Build where clause
-    const where: any = {};
+    const where: Prisma.EventSourceWhereInput = {};
 
     if (filters.sourceType?.length) {
       where.sourceType = { in: filters.sourceType };
@@ -37,8 +42,8 @@ export async function GET(request: NextRequest) {
 
     if (filters.search) {
       where.OR = [
-        { name: { contains: filters.search, mode: 'insensitive' } },
-        { url: { contains: filters.search, mode: 'insensitive' } },
+        { name: { contains: filters.search } },
+        { url: { contains: filters.search } },
       ];
     }
 
@@ -47,12 +52,7 @@ export async function GET(request: NextRequest) {
       prisma.eventSource.findMany({
         where,
         include: {
-          venue: {
-            select: {
-              name: true,
-              venueType: true,
-            },
-          },
+          venue: true,
           _count: {
             select: {
               events: true,
@@ -63,11 +63,15 @@ export async function GET(request: NextRequest) {
             take: 5,
             orderBy: { createdAt: 'desc' },
             select: {
+              id: true,
+              sourceId: true,
               status: true,
               eventsFound: true,
-              durationMs: true,
+              error: true,
+              metadata: true,
+              startedAt: true,
+              completedAt: true,
               createdAt: true,
-              errorMessage: true,
             },
           },
         },
@@ -91,6 +95,8 @@ export async function GET(request: NextRequest) {
         totalPages: Math.ceil(total / limit),
         hasNext: skip + limit < total,
         hasPrev: page > 1,
+        // @ts-ignore - parity field used in tests elsewhere
+        hasMore: skip + limit < total,
       },
     };
 
@@ -112,7 +118,6 @@ export async function POST(request: NextRequest) {
     const source = await prisma.eventSource.create({
       data: {
         ...body,
-        nextScrapeDue: new Date(Date.now() + body.scrapeFrequencyHours * 60 * 60 * 1000),
       },
       include: {
         venue: true,

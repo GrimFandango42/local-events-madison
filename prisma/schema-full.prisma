@@ -1,0 +1,299 @@
+// Prisma Schema for Local Events Platform
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum SourceType {
+  government
+  local_media
+  venue
+  restaurant
+  brewery
+  cultural
+  university
+  community
+  custom
+  social_media
+  api_feed
+}
+
+enum SourceStatus {
+  active
+  paused
+  failed
+  archived
+}
+
+enum VenueType {
+  restaurant
+  bar
+  brewery
+  distillery
+  coffee_shop
+  concert_hall
+  theater
+  gallery
+  museum
+  community_center
+  park
+  university_venue
+  government_facility
+  sports_venue
+  festival_ground
+  food_truck
+  market
+  other
+}
+
+enum EventCategory {
+  food
+  music
+  culture
+  art
+  theater
+  festival
+  market
+  nightlife
+  education
+  community
+  sports
+  family
+  business
+  other
+}
+
+enum ScrapingMethod {
+  mcp_playwright
+  crawlee
+  crawl4ai
+  api_official
+  rss_feed
+  manual
+  webhook
+}
+
+// Main Tables
+model Venue {
+  id          String    @id @default(cuid())
+  name        String
+  venueType   VenueType @map("venue_type")
+  
+  // Location data
+  address     String?
+  city        String    @default("Madison")
+  state       String    @default("WI")
+  zipCode     String?   @map("zip_code")
+  latitude    Float?
+  longitude   Float?
+  
+  // Contact information
+  website     String?
+  phone       String?
+  email       String?
+  
+  // Social media
+  instagramHandle String?   @map("instagram_handle")
+  facebookPage    String?   @map("facebook_page")
+  twitterHandle   String?   @map("twitter_handle")
+  
+  // Business details
+  description     String?
+  hoursOperation  Json?     @map("hours_of_operation")
+  priceRange      String?   @map("price_range")
+  cuisineType     String?   @map("cuisine_type")
+  capacity        Int?
+  
+  // Event hosting details
+  hostsEvents         Boolean @default(true) @map("hosts_events")
+  eventCalendarUrl    String? @map("event_calendar_url")
+  typicalEventTypes   String[] @map("typical_event_types")
+  
+  // Relationships
+  eventSources EventSource[]
+  events       Event[]
+  
+  // Metadata
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  verified  Boolean  @default(false)
+  notes     String?
+
+  @@map("venues")
+}
+
+model EventSource {
+  id              String          @id @default(cuid())
+  name            String
+  url             String          @unique
+  sourceType      SourceType      @map("source_type")
+  scrapingMethod  ScrapingMethod  @default(mcp_playwright) @map("scraping_method")
+  
+  // Association with venues
+  venueId         String?         @map("venue_id")
+  venue           Venue?          @relation(fields: [venueId], references: [id], onDelete: SetNull)
+  
+  // Scraping configuration
+  scrapingConfig  Json            @default("{}") @map("scraping_config")
+  extractionRules Json            @default("{}") @map("extraction_rules")
+  
+  // Scheduling
+  scrapeFrequencyHours Int       @default(6) @map("scrape_frequency_hours")
+  lastScraped         DateTime?  @map("last_scraped")
+  nextScrapeDue       DateTime?  @map("next_scrape_due")
+  
+  // Performance tracking
+  status          SourceStatus @default(active)
+  successRate     Float      @default(100.00) @map("success_rate")
+  lastSuccess     DateTime?    @map("last_success")
+  failureCount    Int          @default(0) @map("failure_count")
+  
+  // Content analysis
+  typicalEventCount   Int        @default(0) @map("typical_event_count")
+  eventKeywords       String[]   @map("event_keywords")
+  contentStructureNotes String? @map("content_structure_notes")
+  
+  // User management
+  addedByUserId       String?  @map("added_by_user_id")
+  isCustomSource      Boolean  @default(false) @map("is_custom_source")
+  approvalStatus      String   @default("approved") @map("approval_status")
+  
+  // Relationships
+  events          Event[]
+  scrapingLogs    ScrapingLog[]
+  userSubmissions UserSourceSubmission[]
+  
+  // Metadata
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+  notes     String?
+
+  @@map("event_sources")
+}
+
+model Event {
+  id          String        @id @default(cuid())
+  title       String
+  description String?
+  category    EventCategory
+  
+  // Timing
+  startDateTime DateTime @map("start_datetime")
+  endDateTime   DateTime? @map("end_datetime")
+  timezone      String   @default("America/Chicago")
+  allDay        Boolean  @default(false) @map("all_day")
+  recurring     Boolean  @default(false)
+  recurrenceRule String? @map("recurrence_rule")
+  
+  // Location
+  venueId        String? @map("venue_id")
+  venue          Venue?  @relation(fields: [venueId], references: [id], onDelete: SetNull)
+  customLocation String? @map("custom_location")
+  locationNotes  String? @map("location_notes")
+  
+  // Pricing
+  priceMin        Int?    @map("price_min") // In cents
+  priceMax        Int?    @map("price_max")
+  priceDescription String? @map("price_description")
+  ticketUrl       String? @map("ticket_url")
+  
+  // Content
+  imageUrl       String? @map("image_url")
+  tags           String[]
+  ageRestriction String? @map("age_restriction")
+  capacity       Int?
+  
+  // Source tracking
+  sourceId    String?      @map("source_id")
+  source      EventSource? @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+  sourceUrl   String?      @map("source_url")
+  externalId  String?      @map("external_id")
+  
+  // Data quality
+  confidenceScore Float @default(1.00) @map("confidence_score")
+  manualReview    Boolean @default(false) @map("manual_review")
+  verified        Boolean @default(false)
+  
+  // Metadata
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+  scrapedAt   DateTime? @map("scraped_at")
+  hashContent String?   @map("hash_content")
+
+  @@map("events")
+}
+
+model ScrapingLog {
+  id        String   @id @default(cuid())
+  sourceId  String   @map("source_id")
+  source    EventSource @relation(fields: [sourceId], references: [id], onDelete: Cascade)
+  
+  // Execution details
+  startedAt    DateTime        @map("started_at")
+  completedAt  DateTime?       @map("completed_at")
+  status       String          // success, failure, timeout
+  scrapingMethod ScrapingMethod @map("scraping_method")
+  
+  // Results
+  eventsFound   Int @default(0) @map("events_found")
+  eventsNew     Int @default(0) @map("events_new")
+  eventsUpdated Int @default(0) @map("events_updated")
+  
+  // Performance
+  durationMs      Int? @map("duration_ms")
+  bytesDownloaded Int? @map("bytes_downloaded")
+  requestsMade    Int? @map("requests_made")
+  
+  // Error tracking
+  errorMessage String? @map("error_message")
+  errorType    String? @map("error_type")
+  stackTrace   String? @map("stack_trace")
+  
+  // Content analysis
+  contentHash    String? @map("content_hash")
+  pageTitle      String? @map("page_title")
+  responseStatus Int?    @map("response_status")
+  
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("scraping_logs")
+}
+
+model UserSourceSubmission {
+  id              String @id @default(cuid())
+  
+  // Submitted source details
+  suggestedName String      @map("suggested_name")
+  url           String
+  sourceType    SourceType? @map("source_type")
+  venueName     String?     @map("venue_name")
+  
+  // Submission context
+  userIpAddress       String?  @map("user_ip_address")
+  userEmail           String?  @map("user_email")
+  submissionReason    String?  @map("submission_reason")
+  expectedEventTypes  String[] @map("expected_event_types")
+  
+  // Review process
+  status       String    @default("pending") // pending, approved, rejected
+  reviewedBy   String?   @map("reviewed_by")
+  reviewedAt   DateTime? @map("reviewed_at")
+  reviewNotes  String?   @map("review_notes")
+  
+  // If approved, link to created records
+  createdVenueId  String? @map("created_venue_id")
+  createdSourceId String? @map("created_source_id")
+  createdSource   EventSource? @relation(fields: [createdSourceId], references: [id])
+  
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@map("user_source_submissions")
+}
+
+// Indexes
+// Note: Prisma will generate these automatically, but we can be explicit about important ones

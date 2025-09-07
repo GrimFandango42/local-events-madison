@@ -14,7 +14,7 @@ This MCP (Model Context Protocol) server enables ChatGPT to interact with the Lo
 
 ### Prerequisites
 - Node.js 18+ installed
-- Local Events Madison platform running on `localhost:3001`
+- Local Events platform running locally (Next.js dev on `localhost:3000` by default)
 - ChatGPT Pro/Business/Enterprise account
 
 ### Setup Steps
@@ -34,6 +34,12 @@ This MCP (Model Context Protocol) server enables ChatGPT to interact with the Lo
    ```bash
    npm start
    ```
+
+If your Local Events API runs on a non-default port, set:
+
+```bash
+export LOCAL_EVENTS_API_URL="http://localhost:3000"
+```
 
 ## ChatGPT Integration
 

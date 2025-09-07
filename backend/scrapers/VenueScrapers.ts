@@ -363,8 +363,8 @@ export class MadisonVenueScrapers {
       location: location?.trim() || config.venue,
       price: this.cleanPrice(price),
       imageUrl: this.resolveImageUrl(imageUrl, config.url),
-      category: this.categorizeVenueEvent(title, description, config.venue),
-      tags: this.extractEventTags(title, description)
+      category: this.categorizeVenueEvent(title, description ?? '', config.venue),
+      tags: this.extractEventTags(title, description ?? '')
     };
   }
 

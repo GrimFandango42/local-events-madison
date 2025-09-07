@@ -207,18 +207,19 @@ async function seed() {
       sourceType: 'venue',
       venueId: majestic.id,
       isActive: true,
-      scrapingConfig: {
+      // JSON stored as strings in SQLite schema
+      scrapingConfig: JSON.stringify({
         method: 'playwright',
         waitTime: 3000
-      },
-      extractionRules: {
+      }),
+      extractionRules: JSON.stringify({
         selectors: {
           container: '.event-item',
           title: '.event-title',
           date: '.event-date',
           description: '.event-description'
         }
-      }
+      })
     }
   });
 
@@ -232,7 +233,8 @@ async function seed() {
       price: '$15',
       venueId: majestic.id,
       sourceUrl: 'https://majesticmadison.com/events',
-      tags: ['live-music', 'local'],
+      // CSV string per SQLite schema
+      tags: 'live-music,local',
       status: 'published'
     }
   });
@@ -246,7 +248,7 @@ async function seed() {
       price: 'Free',
       venueId: memorialUnion.id,
       sourceUrl: 'https://union.wisc.edu/events',
-      tags: ['free', 'outdoor', 'jazz'],
+      tags: 'free,outdoor,jazz',
       status: 'published'
     }
   });
@@ -315,7 +317,7 @@ seed().catch(console.error).finally(() => prisma.$disconnect());
     log('\n🔧 Next Steps:', colors.cyan);
     log('  1. Add your API keys to .env.local', colors.white);
     log('  2. Customize config/madison.json', colors.white);
-    log('  3. Start adding your city\\'s venues', colors.white);
+    log('  3. Start adding your city\'s venues', colors.white);
 
     const startNow = await question('\n🎪 Start development server now? (y/n): ');
     

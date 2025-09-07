@@ -1,7 +1,7 @@
 // MCPEventCollector.ts - Core event collection service using MCP Playwright
 import { EventEmitter } from 'events';
 import { PrismaClient } from '@prisma/client';
-import { EventDateParser } from '@/lib/dateParser';
+import { EventDateParser } from '../../lib/dateParser';
 
 interface ScrapingResult {
   success: boolean;
@@ -289,10 +289,10 @@ export class MCPEventCollector extends EventEmitter {
     const startDateTime = parsedDate.date;
 
     // Determine category
-    const category = this.categorizeEvent(title, description, source.sourceType);
+    const category = this.categorizeEvent(title, description ?? '', source.sourceType);
 
     // Extract tags
-    const tags = this.extractTags(title, description);
+    const tags = this.extractTags(title, description ?? '');
 
     return {
       title: title.trim(),
@@ -301,7 +301,7 @@ export class MCPEventCollector extends EventEmitter {
       location: location?.trim(),
       category,
       price: price?.trim(),
-      imageUrl,
+      imageUrl: imageUrl ?? undefined,
       sourceUrl: source.url,
       tags
     };
@@ -566,8 +566,9 @@ export class MCPEventCollector extends EventEmitter {
         name: source.name,
         url: source.url,
         sourceType: source.sourceType,
-        scrapingConfig: source.scrapingConfig as any,
-        extractionRules: source.extractionRules as any,
+        // Schema stores these as strings in SQLite; parse safely
+        scrapingConfig: safeJsonParse(source.scrapingConfig),
+        extractionRules: safeJsonParse(source.extractionRules),
         venue: source.venue ? {
           id: source.venue.id,
           name: source.venue.name,
@@ -577,6 +578,27 @@ export class MCPEventCollector extends EventEmitter {
     } catch (error) {
       console.error('Failed to get sources due for scraping:', error);
       return [];
+    }
+  }
+
+  // Run a single collection cycle over currently due sources (no long loop)
+  async runOnce() {
+    try {
+      const sourcesToScrape = await this.getSourcesDueForScraping();
+      console.log(`🔁 One-shot run: ${sourcesToScrape.length} sources due`);
+
+      for (const source of sourcesToScrape) {
+        try {
+          await this.collectFromSource(source);
+        } catch (error) {
+          console.error(`⚠️ Failed to collect from ${source.name}:`, error);
+          await this.logScrapingError(source.id, error);
+        }
+        await this.delay(1000);
+      }
+    } catch (error) {
+      console.error('Run-once collection error:', error);
+      throw error;
     }
   }
 
@@ -613,7 +635,7 @@ export class MCPEventCollector extends EventEmitter {
             price: eventData.price,
             imageUrl: eventData.imageUrl,
             sourceUrl: eventData.sourceUrl,
-            tags: eventData.tags,
+            tags: Array.isArray(eventData.tags) ? eventData.tags.join(',') : (eventData.tags as any),
             venueId: source.venue?.id,
             customLocation: source.venue?.id ? null : eventData.location,
             sourceId: source.id,
@@ -681,7 +703,7 @@ export class MCPEventCollector extends EventEmitter {
           status: result.success ? 'completed' : 'failed',
           eventsFound: result.eventsFound.length,
           error: result.error,
-          metadata: result.metadata
+          metadata: JSON.stringify(result.metadata)
         }
       });
     } catch (error) {
@@ -699,7 +721,7 @@ export class MCPEventCollector extends EventEmitter {
           status: 'failed',
           eventsFound: 0,
           error: error.message || String(error),
-          metadata: { error: error.toString() }
+          metadata: JSON.stringify({ error: String(error) })
         }
       });
       
@@ -728,5 +750,16 @@ export class MCPEventCollector extends EventEmitter {
   async destroy() {
     await this.stop();
     await this.prisma.$disconnect();
+  }
+}
+
+// Local helper for safe JSON parsing from string columns
+function safeJsonParse(value: any): any {
+  if (!value) return {};
+  if (typeof value === 'object') return value;
+  try {
+    return JSON.parse(value);
+  } catch {
+    return {};
   }
 }

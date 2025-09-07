@@ -10,6 +10,7 @@ export default function HomePage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [recentEvents, setRecentEvents] = useState<EventWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchDashboardData();
@@ -22,9 +23,12 @@ export default function HomePage() {
       if (data.success) {
         setStats(data.data);
         setRecentEvents(data.data.recentEvents);
+      } else {
+        setError(data.error || 'Failed to load dashboard');
       }
     } catch (error) {
       console.error('Failed to fetch dashboard data:', error);
+      setError('Unable to load dashboard data');
     } finally {
       setLoading(false);
     }
@@ -70,6 +74,21 @@ export default function HomePage() {
           </div>
         </div>
       </header>
+
+      {/* Error banner */}
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm">
+          <div className="max-w-7xl mx-auto flex items-center justify-between">
+            <span>{error}</span>
+            <button
+              onClick={() => { setError(null); fetchDashboardData(); }}
+              className="underline font-medium"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Hero Section */}
       <section className="py-16">
@@ -178,9 +197,9 @@ export default function HomePage() {
                       </span>
                     </div>
                     
-                    {event.priceMin !== null && (
+                    {event.price && (
                       <span className="text-green-600 font-medium">
-                        {event.priceMin === 0 ? 'Free' : `$${(event.priceMin / 100).toFixed(0)}+`}
+                        {String(event.price).toLowerCase().includes('free') ? 'Free' : String(event.price)}
                       </span>
                     )}
                   </div>

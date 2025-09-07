@@ -8,21 +8,24 @@
   },
   "scripts": {
     "dev": "next dev",
+    "dev:oneclick": "node scripts/one-click-dev.js",
     "build": "next build",
     "start": "next start",
     "lint": "eslint . --ext .ts,.tsx",
     "typecheck": "tsc --noEmit",
-    "test": "jest",
+    "test": "npm run db:generate && npm run db:push && jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
     "test:scraper": "node scripts/test-scrapers.js",
-    "start:collector": "node backend/services/MCPEventCollector.js",
+    "start:collector": "tsx backend/services/MCPEventCollector.ts",
+    "scrape:once": "tsx backend/services/run-once.ts",
     "db:migrate": "prisma migrate deploy",
     "db:generate": "prisma generate",
     "db:push": "prisma db push",
     "db:studio": "prisma studio",
-    "db:seed": "node scripts/seed-database.js",
+    "db:seed": "node scripts/create-sample-data.js",
     "setup": "node scripts/quick-setup.js",
+    "setup:city": "node scripts/quick-setup.js",
     "config:validate": "node scripts/validate-config.js"
   },
   "keywords": [
@@ -51,8 +54,9 @@
     "lucide-react": "^0.294.0",
     "luxon": "^3.4.4",
     "next": "^14.0.0",
-    "playwright": "^1.56.0-alpha-1756505518000",
+    "playwright": "^1.46.0",
     "prisma": "^5.0.0",
+    
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
     "redis": "^4.0.0",
@@ -68,13 +72,17 @@
     "@typescript-eslint/parser": "^6.0.0",
     "autoprefixer": "^10.4.21",
     "eslint": "^8.0.0",
-    "eslint-config-next": "^15.5.2",
+    "eslint-config-next": "^14.0.0",
     "eslint-config-prettier": "^10.1.8",
     "jest": "^29.0.0",
     "jest-environment-node": "^29.7.0",
     "node-mocks-http": "^1.14.0",
     "postcss": "^8.5.6",
-    "prettier": "^3.0.0"
+    "prettier": "^3.0.0",
+    "@babel/core": "^7.25.0",
+    "babel-jest": "^29.7.0",
+    "@babel/runtime": "^7.25.0",
+    "tsx": "^4.19.0"
   },
   "engines": {
     "node": ">=18.0.0"

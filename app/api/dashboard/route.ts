@@ -52,14 +52,11 @@ export async function GET(request: NextRequest) {
           venue: {
             select: { name: true, venueType: true },
           },
-          _count: {
-            select: { events: true },
-          },
         },
         where: { status: 'active' },
         orderBy: [
           { successRate: 'desc' },
-          { _count: { events: 'desc' } },
+          { createdAt: 'desc' },
         ],
         take: 5,
       }),
@@ -85,7 +82,7 @@ export async function GET(request: NextRequest) {
       failedSources,
       totalEvents,
       eventsLast7Days,
-      avgSuccessRate: avgSuccessRate._avg.successRate?.toNumber() || 0,
+      avgSuccessRate: (avgSuccessRate._avg.successRate as unknown as number) || 0,
       topPerformingSources: topSources as any,
       recentEvents: recentEvents as any,
     };

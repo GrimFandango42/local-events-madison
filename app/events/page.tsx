@@ -124,8 +124,8 @@ export default function EventsPage() {
     return colors[category] || 'bg-gray-100 text-gray-800 border-gray-200';
   };
 
-  const formatEventDate = (dateString: string) => {
-    const date = new Date(dateString);
+  const formatEventDate = (input: string | Date) => {
+    const date = new Date(input as any);
     const now = new Date();
     const isToday = date.toDateString() === now.toDateString();
     const tomorrow = new Date(now);
@@ -142,8 +142,8 @@ export default function EventsPage() {
     });
   };
 
-  const formatEventTime = (dateString: string) => {
-    return new Date(dateString).toLocaleTimeString('en-US', {
+  const formatEventTime = (input: string | Date) => {
+    return new Date(input as any).toLocaleTimeString('en-US', {
       hour: 'numeric',
       minute: '2-digit',
       hour12: true,
@@ -316,9 +316,9 @@ export default function EventsPage() {
                       <span className={`badge border ${getCategoryColor(event.category)}`}>
                         {event.category}
                       </span>
-                      {event.tags.map((tag) => (
-                        <span key={tag} className="badge bg-gray-100 text-gray-600 border border-gray-200">
-                          {tag}
+                      {(event.tags || '').split(',').filter(tag => tag.trim()).map((tag) => (
+                        <span key={tag.trim()} className="badge bg-gray-100 text-gray-600 border border-gray-200">
+                          {tag.trim()}
                         </span>
                       ))}
                     </div>
@@ -361,20 +361,15 @@ export default function EventsPage() {
                     </div>
                     
                     <div className="flex items-center gap-4">
-                      {event.priceMin !== null && (
+                      {event.price && (
                         <span className="font-semibold text-green-600 text-sm">
-                          {event.priceMin === 0 
-                            ? 'Free' 
-                            : event.priceMax && event.priceMax !== event.priceMin
-                              ? `$${(event.priceMin / 100).toFixed(0)}-${(event.priceMax / 100).toFixed(0)}`
-                              : `$${(event.priceMin / 100).toFixed(0)}+`
-                          }
+                          {String(event.price).toLowerCase().includes('free') ? 'Free' : String(event.price)}
                         </span>
                       )}
                       
                       {(event.ticketUrl || event.sourceUrl) && (
                         <a
-                          href={event.ticketUrl || event.sourceUrl}
+                          href={(event.ticketUrl ?? undefined) || (event.sourceUrl ?? undefined)}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-blue-600 hover:text-blue-700 flex items-center gap-2 text-sm font-medium hover:underline transition-colors"

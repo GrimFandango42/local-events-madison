@@ -15,6 +15,9 @@ import {
 } from '@modelcontextprotocol/sdk/types.js';
 import fetch from 'node-fetch';
 
+// Base URL for the Local Events API (defaults to Next.js dev at 3000)
+const BASE_URL = process.env.LOCAL_EVENTS_API_URL || 'http://localhost:3000';
+
 class LocalEventsMCPServer {
   constructor() {
     this.server = new Server(
@@ -193,7 +196,7 @@ class LocalEventsMCPServer {
     if (args.dateFrom) params.append('dateFrom', args.dateFrom);
     if (args.dateTo) params.append('dateTo', args.dateTo);
 
-    const response = await fetch(`http://localhost:3001/api/events?${params}`);
+    const response = await fetch(`${BASE_URL}/api/events?${params}`);
     const data = await response.json();
 
     if (!data.success) {
@@ -220,7 +223,7 @@ class LocalEventsMCPServer {
   }
 
   async getEventDetails(args) {
-    const response = await fetch(`http://localhost:3001/api/events/${args.eventId}`);
+    const response = await fetch(`${BASE_URL}/api/events/${args.eventId}`);
     const data = await response.json();
 
     if (!data.success) {
@@ -248,7 +251,7 @@ class LocalEventsMCPServer {
   }
 
   async submitEventSource(args) {
-    const response = await fetch('http://localhost:3001/api/sources/submit', {
+    const response = await fetch(`${BASE_URL}/api/sources/submit`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -283,7 +286,7 @@ class LocalEventsMCPServer {
   }
 
   async getDashboardStats() {
-    const response = await fetch('http://localhost:3001/api/dashboard');
+    const response = await fetch(`${BASE_URL}/api/dashboard`);
     const data = await response.json();
 
     if (!data.success) {
@@ -312,7 +315,7 @@ class LocalEventsMCPServer {
   }
 
   async fetchEvents() {
-    const response = await fetch('http://localhost:3001/api/events');
+    const response = await fetch(`${BASE_URL}/api/events`);
     const data = await response.json();
     return data.success ? data.data : [];
   }

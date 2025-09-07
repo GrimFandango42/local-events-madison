@@ -1,5 +1,5 @@
 // Type definitions for the Local Events platform
-import type { Venue, EventSource, Event, ScrapingLog, UserSourceSubmission } from '@prisma/client';
+import type { Venue, EventSource, Event, ScrapingLog } from '@prisma/client';
 
 // Extended types with relations
 export type VenueWithSources = Venue & {

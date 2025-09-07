@@ -60,18 +60,20 @@ export const createTestEventSource = async (data: Partial<any> = {}) => {
       sourceType: data.sourceType || 'venue',
       venueId: venue.id,
       isActive: data.isActive ?? true,
-      scrapingConfig: data.scrapingConfig || {
-        method: 'playwright',
-        waitTime: 3000
-      },
-      extractionRules: data.extractionRules || {
-        selectors: {
-          container: '.event',
-          title: '.title',
-          date: '.date',
-          description: '.description'
+      // SQLite schema stores JSON as strings
+      scrapingConfig: JSON.stringify(
+        data.scrapingConfig || { method: 'playwright', waitTime: 3000 }
+      ),
+      extractionRules: JSON.stringify(
+        data.extractionRules || {
+          selectors: {
+            container: '.event',
+            title: '.title',
+            date: '.date',
+            description: '.description'
+          }
         }
-      },
+      ),
       ...data
     }
   });
@@ -91,7 +93,8 @@ export const createTestEvent = async (data: Partial<any> = {}) => {
       venueId: venue.id,
       customLocation: data.customLocation,
       sourceUrl: data.sourceUrl || 'https://test-venue.com/events',
-      tags: data.tags || ['test'],
+      // SQLite schema stores tags as CSV string
+      tags: Array.isArray(data.tags) ? data.tags.join(',') : (data.tags || 'test'),
       status: data.status || 'published',
       ...data
     }

@@ -295,7 +295,7 @@ export class EventDateParser {
   }
 
   private static parseMonthName(monthName: string): number {
-    const months = {
+    const months: Record<string, number> = {
       january: 0, jan: 0,
       february: 1, feb: 1,
       march: 2, mar: 2,
@@ -314,7 +314,7 @@ export class EventDateParser {
   }
 
   private static getDayOfWeek(dayName: string): number {
-    const days = {
+    const days: Record<string, number> = {
       monday: 1, mon: 1,
       tuesday: 2, tue: 2, tues: 2,
       wednesday: 3, wed: 3,

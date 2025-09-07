@@ -27,45 +27,24 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Check if there's already a pending submission for this URL
-    const pendingSubmission = await prisma.userSourceSubmission.findFirst({
-      where: {
-        url: body.url,
-        status: 'pending',
-      },
-    });
-
-    if (pendingSubmission) {
-      return NextResponse.json(
-        { success: false, error: 'This URL is already pending review' },
-        { status: 409 }
-      );
-    }
-
-    // Get client IP for tracking
-    const clientIP = request.ip || 
-      request.headers.get('x-forwarded-for') || 
-      request.headers.get('x-real-ip') || 
-      'unknown';
-
-    // Create user submission
-    const submission = await prisma.userSourceSubmission.create({
+    // For SQLite-minimal schema, persist a paused EventSource as the submission record
+    const created = await prisma.eventSource.create({
       data: {
-        suggestedName: body.suggestedName,
+        name: body.suggestedName,
         url: body.url,
-        sourceType: body.sourceType as any,
-        venueName: body.venueName,
-        userIpAddress: clientIP,
-        userEmail: body.userEmail,
-        submissionReason: body.submissionReason,
-        expectedEventTypes: body.expectedEventTypes,
+        sourceType: body.sourceType,
+        isActive: false,
+        status: 'paused',
+        // Store minimal config as JSON string fields in current schema
+        scrapingConfig: JSON.stringify({ method: 'playwright', waitTime: 3000 }),
+        extractionRules: JSON.stringify({}),
       },
     });
 
     return NextResponse.json({
       success: true,
-      data: submission,
-      message: 'Source submission received! We\'ll review it within 24 hours.',
+      data: created,
+      message: 'Submission received. Source created in paused state for review.',
     });
   } catch (error) {
     console.error('Submit source error:', error);
@@ -79,18 +58,30 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
-    const status = searchParams.get('status') || 'pending';
-    
-    // Get pending submissions for review
-    const submissions = await prisma.userSourceSubmission.findMany({
-      where: { status },
+    const status = (searchParams.get('status') || 'paused').toLowerCase();
+
+    // In the minimal SQLite schema, we treat paused EventSources as pending submissions
+    const submissions = await prisma.eventSource.findMany({
+      where: {
+        isActive: false,
+        status: status as any, // 'paused' by default
+      },
       orderBy: { createdAt: 'desc' },
       take: 50,
+      select: {
+        id: true,
+        name: true,
+        url: true,
+        sourceType: true,
+        status: true,
+        createdAt: true,
+      },
     });
 
     return NextResponse.json({
       success: true,
       data: submissions,
+      meta: { count: submissions.length },
     });
   } catch (error) {
     console.error('Get submissions error:', error);
