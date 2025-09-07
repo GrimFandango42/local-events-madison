@@ -2,10 +2,22 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import type { NewSourceSubmission } from '@/lib/types';
+import { z } from 'zod';
+
+const submissionSchema = z.object({
+  suggestedName: z.string().min(2),
+  url: z.string().url(),
+  sourceType: z.enum(['restaurant','venue','organization','festival','other','cultural','community']).default('venue'),
+  venueName: z.string().optional(),
+  expectedEventTypes: z.array(z.string()).optional(),
+  submissionReason: z.string().max(1000).optional(),
+  userEmail: z.string().email().optional(),
+});
 
 export async function POST(request: NextRequest) {
   try {
-    const body: NewSourceSubmission = await request.json();
+    const raw = await request.json();
+    const body: NewSourceSubmission = submissionSchema.parse(raw);
 
     // Validate required fields
     if (!body.suggestedName || !body.url || !body.sourceType) {
@@ -47,11 +59,11 @@ export async function POST(request: NextRequest) {
       message: 'Submission received. Source created in paused state for review.',
     });
   } catch (error) {
+    if (error instanceof z.ZodError) {
+      return NextResponse.json({ success: false, error: error.issues.map(i => i.message).join('; ') }, { status: 400 });
+    }
     console.error('Submit source error:', error);
-    return NextResponse.json(
-      { success: false, error: 'Failed to submit source' },
-      { status: 500 }
-    );
+    return NextResponse.json({ success: false, error: 'Failed to submit source' }, { status: 500 });
   }
 }
 
