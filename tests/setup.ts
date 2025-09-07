@@ -53,12 +53,19 @@ export const createTestVenue = async (data: Partial<any> = {}) => {
 export const createTestEventSource = async (data: Partial<any> = {}) => {
   const venue = data.venue || await createTestVenue();
   
+  // Separate venue relation data from other data
+  const { venue: _, ...otherData } = data;
+  
   return await prisma.eventSource.create({
     data: {
       name: data.name || 'Test Event Source',
       url: data.url || 'https://test-venue.com/events',
       sourceType: data.sourceType || 'venue',
-      venueId: venue.id,
+      venue: {
+        connect: {
+          id: venue.id
+        }
+      },
       isActive: data.isActive ?? true,
       // SQLite schema stores JSON as strings
       scrapingConfig: JSON.stringify(
@@ -74,13 +81,16 @@ export const createTestEventSource = async (data: Partial<any> = {}) => {
           }
         }
       ),
-      ...data
+      ...otherData
     }
   });
 };
 
 export const createTestEvent = async (data: Partial<any> = {}) => {
   const venue = data.venue || await createTestVenue();
+  
+  // Separate venue relation data from other data
+  const { venue: _, ...otherData } = data;
   
   return await prisma.event.create({
     data: {
@@ -90,13 +100,17 @@ export const createTestEvent = async (data: Partial<any> = {}) => {
       endDateTime: data.endDateTime,
       category: data.category || 'music',
       price: data.price || 'Free',
-      venueId: venue.id,
+      venue: {
+        connect: {
+          id: venue.id
+        }
+      },
       customLocation: data.customLocation,
       sourceUrl: data.sourceUrl || 'https://test-venue.com/events',
       // SQLite schema stores tags as CSV string
       tags: Array.isArray(data.tags) ? data.tags.join(',') : (data.tags || 'test'),
       status: data.status || 'published',
-      ...data
+      ...otherData
     }
   });
 };

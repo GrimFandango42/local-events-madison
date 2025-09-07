@@ -1,7 +1,8 @@
-// API route for events with caching and performance optimizations
+// API route for events with caching, validation, and performance optimizations (2025 best practices)
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
 import { withCache, cacheKeys, createCacheKey } from '@/lib/cache';
+import { EventFiltersSchema, PaginationSchema, validateRequest, sanitizeHtml } from '@/lib/validation';
 import { DateTime } from 'luxon';
 import type { EventFilters, PaginatedResponse, EventWithDetails } from '@/lib/types';
 import type { Prisma } from '@prisma/client';
@@ -10,26 +11,53 @@ export async function GET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     
-    // Parse filters from query parameters
-    const filters: EventFilters = {
-      category: searchParams.get('category')?.split(',') || undefined,
+    // Validate and sanitize input parameters
+    const rawFilters = {
+      category: searchParams.get('category')?.split(','),
       dateFrom: searchParams.get('dateFrom') || undefined,
       dateTo: searchParams.get('dateTo') || undefined,
       venueId: searchParams.get('venueId') || undefined,
-      tags: searchParams.get('tags')?.split(',') || undefined,
+      tags: searchParams.get('tags')?.split(','),
       priceMax: searchParams.get('priceMax') ? parseInt(searchParams.get('priceMax')!) : undefined,
-      search: searchParams.get('search') || undefined,
-      neighborhood: searchParams.get('neighborhood') || undefined,
+      search: searchParams.get('search') ? sanitizeHtml(searchParams.get('search')!) : undefined,
+      neighborhood: searchParams.get('neighborhood') ? sanitizeHtml(searchParams.get('neighborhood')!) : undefined,
     };
-
-    // Enhanced pagination with proper defaults
-    const parseIntSafe = (value: string | null, def: number) => {
-      const n = parseInt(String(value ?? ''));
-      return Number.isFinite(n) && n > 0 ? n : def;
+    
+    const filtersValidation = validateRequest(EventFiltersSchema, rawFilters);
+    if (!filtersValidation.success) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Invalid filters', 
+          details: filtersValidation.errors?.issues 
+        },
+        { status: 400 }
+      );
+    }
+    
+    const filters = filtersValidation.data!;
+    
+    // Validate pagination parameters
+    const rawPagination = {
+      page: parseInt(searchParams.get('page') || '1'),
+      pageSize: parseInt(searchParams.get('pageSize') || '12'),
+      limit: parseInt(searchParams.get('limit') || '12'),
     };
-    const page = parseIntSafe(searchParams.get('page'), 1);
-    const pageSize = parseIntSafe(searchParams.get('pageSize'), 12); // Better default for UI
-    const limit = Math.min(parseIntSafe(searchParams.get('limit'), pageSize), 100);
+    
+    const paginationValidation = validateRequest(PaginationSchema, rawPagination);
+    if (!paginationValidation.success) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Invalid pagination parameters',
+          details: paginationValidation.errors?.issues 
+        },
+        { status: 400 }
+      );
+    }
+    
+    const { page, pageSize, limit: requestedLimit } = paginationValidation.data!;
+    const limit = requestedLimit || pageSize;
     const skip = (page - 1) * limit;
 
     // Build where clause
