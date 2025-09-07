@@ -1,6 +1,7 @@
 // MCPEventCollector.ts - Core event collection service using MCP Playwright
 import { EventEmitter } from 'events';
 import { PrismaClient } from '@prisma/client';
+import { EventDateParser } from '@/lib/dateParser';
 
 interface ScrapingResult {
   success: boolean;
@@ -282,9 +283,10 @@ export class MCPEventCollector extends EventEmitter {
     const price = await this.getTextFromSelector(element, selectors.price || '.price, .cost, .ticket-price');
     const imageUrl = await this.getAttributeFromSelector(element, selectors.image || 'img', 'src');
 
-    // Parse date
-    const startDateTime = this.parseEventDate(dateText);
-    if (!startDateTime) return null;
+    // Parse date using enhanced parser
+    const parsedDate = EventDateParser.parseEventDate(dateText || '');
+    if (!parsedDate) return null;
+    const startDateTime = parsedDate.date;
 
     // Determine category
     const category = this.categorizeEvent(title, description, source.sourceType);
@@ -538,31 +540,174 @@ export class MCPEventCollector extends EventEmitter {
   }
 
   private async getSourcesDueForScraping(): Promise<EventSource[]> {
-    // Query database for sources that need scraping
-    // This would use Prisma queries in real implementation
-    return [];
+    try {
+      const now = new Date();
+      const fourHoursAgo = new Date(now.getTime() - 4 * 60 * 60 * 1000);
+
+      const sources = await this.prisma.eventSource.findMany({
+        where: {
+          isActive: true,
+          OR: [
+            { lastScrapedAt: null },
+            { lastScrapedAt: { lt: fourHoursAgo } }
+          ]
+        },
+        include: {
+          venue: true
+        },
+        orderBy: {
+          lastScrapedAt: 'asc'
+        },
+        take: 10 // Limit concurrent scraping
+      });
+
+      return sources.map(source => ({
+        id: source.id,
+        name: source.name,
+        url: source.url,
+        sourceType: source.sourceType,
+        scrapingConfig: source.scrapingConfig as any,
+        extractionRules: source.extractionRules as any,
+        venue: source.venue ? {
+          id: source.venue.id,
+          name: source.venue.name,
+          location: source.venue.address || source.venue.name
+        } : undefined
+      }));
+    } catch (error) {
+      console.error('Failed to get sources due for scraping:', error);
+      return [];
+    }
   }
 
   private async processAndStoreEvents(events: Event[], source: EventSource): Promise<void> {
     console.log(`💾 Storing ${events.length} events from ${source.name}`);
-    // Database storage logic would go here
+    
+    for (const eventData of events) {
+      try {
+        // Check for existing event (deduplication)
+        const existingEvent = await this.prisma.event.findFirst({
+          where: {
+            title: eventData.title,
+            startDateTime: eventData.startDateTime,
+            OR: [
+              { venueId: source.venue?.id },
+              { customLocation: eventData.location }
+            ]
+          }
+        });
+
+        if (existingEvent) {
+          console.log(`⏩ Skipping duplicate event: ${eventData.title}`);
+          continue;
+        }
+
+        // Create new event
+        await this.prisma.event.create({
+          data: {
+            title: eventData.title,
+            description: eventData.description,
+            startDateTime: eventData.startDateTime,
+            endDateTime: eventData.endDateTime,
+            category: eventData.category,
+            price: eventData.price,
+            imageUrl: eventData.imageUrl,
+            sourceUrl: eventData.sourceUrl,
+            tags: eventData.tags,
+            venueId: source.venue?.id,
+            customLocation: source.venue?.id ? null : eventData.location,
+            sourceId: source.id,
+            status: 'published'
+          }
+        });
+        
+        console.log(`✅ Stored event: ${eventData.title}`);
+        
+      } catch (error) {
+        console.error(`❌ Failed to store event ${eventData.title}:`, error);
+      }
+    }
   }
 
   private async updateSourceStats(sourceId: string, success: boolean): Promise<void> {
-    // Update source success rate and last scraped time
+    try {
+      const source = await this.prisma.eventSource.findUnique({
+        where: { id: sourceId }
+      });
+
+      if (!source) return;
+
+      const totalAttempts = (source.totalAttempts || 0) + 1;
+      const successfulAttempts = (source.successfulAttempts || 0) + (success ? 1 : 0);
+      const successRate = totalAttempts > 0 ? (successfulAttempts / totalAttempts) * 100 : 0;
+
+      await this.prisma.eventSource.update({
+        where: { id: sourceId },
+        data: {
+          lastScrapedAt: new Date(),
+          totalAttempts,
+          successfulAttempts,
+          successRate,
+          status: success ? 'active' : (successRate < 50 ? 'error' : 'warning')
+        }
+      });
+    } catch (error) {
+      console.error('Failed to update source stats:', error);
+    }
   }
 
   private async startScrapingLog(source: EventSource): Promise<string> {
-    // Create scraping log entry
-    return 'log-id';
+    try {
+      const log = await this.prisma.scrapingLog.create({
+        data: {
+          sourceId: source.id,
+          startedAt: new Date(),
+          status: 'running'
+        }
+      });
+      return log.id;
+    } catch (error) {
+      console.error('Failed to create scraping log:', error);
+      return 'error-log-id';
+    }
   }
 
   private async completeScrapingLog(logId: string, result: ScrapingResult): Promise<void> {
-    // Complete scraping log with results
+    try {
+      await this.prisma.scrapingLog.update({
+        where: { id: logId },
+        data: {
+          completedAt: new Date(),
+          status: result.success ? 'completed' : 'failed',
+          eventsFound: result.eventsFound.length,
+          error: result.error,
+          metadata: result.metadata
+        }
+      });
+    } catch (error) {
+      console.error('Failed to complete scraping log:', error);
+    }
   }
 
   private async logScrapingError(sourceId: string, error: any): Promise<void> {
-    // Log scraping errors for monitoring
+    try {
+      await this.prisma.scrapingLog.create({
+        data: {
+          sourceId,
+          startedAt: new Date(),
+          completedAt: new Date(),
+          status: 'failed',
+          eventsFound: 0,
+          error: error.message || String(error),
+          metadata: { error: error.toString() }
+        }
+      });
+      
+      // Update source status
+      await this.updateSourceStats(sourceId, false);
+    } catch (logError) {
+      console.error('Failed to log scraping error:', logError);
+    }
   }
 
   private async generateContentHash(content: string): Promise<string> {
