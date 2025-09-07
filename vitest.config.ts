@@ -8,20 +8,22 @@ export default defineConfig({
   test: {
     globals: true,
     environment: 'happy-dom',
-    setupFiles: ['./tests/vitest.setup.ts'],
+    // setupFiles: ['./tests/vitest.setup.ts'], // Temporarily disabled
     include: ['tests/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
     exclude: [
       '**/node_modules/**',
       '**/dist/**', 
       '**/.next/**',
       '**/coverage/**',
+      // Exclude E2E tests (should run with Playwright)
+      'tests/e2e/**/*',
       // Keep Jest tests separate
       'tests/unit/dateParser.test.ts',
       'tests/integration/mcpEventCollector.test.ts', 
       'tests/api/events.test.ts',
     ],
     coverage: {
-      provider: 'c8',
+      provider: 'v8',
       reporter: ['text', 'json', 'html'],
       include: [
         'app/**/*.{js,ts,jsx,tsx}',
