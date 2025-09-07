@@ -129,8 +129,8 @@ export interface NewSourceSubmission {
   url: string;
   sourceType: string;
   venueName?: string;
-  expectedEventTypes: string[];
-  submissionReason: string;
+  expectedEventTypes?: string[];
+  submissionReason?: string;
   userEmail?: string;
 }
 

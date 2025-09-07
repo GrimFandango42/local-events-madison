@@ -302,8 +302,8 @@ export class MCPEventCollector extends EventEmitter {
       location: location?.trim(),
       category,
       price: price?.trim(),
-      imageUrl: imageUrl ?? undefined,
-      sourceUrl: normalizeUrl(source.url),
+      imageUrl: imageUrl || undefined,
+      sourceUrl: normalizeUrl(source.url) || source.url,
       tags
     };
   }

@@ -1,10 +1,14 @@
 // Home page for Local Events platform
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, memo } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { Calendar, MapPin, Search, Plus, Settings, BarChart3, Clock } from 'lucide-react';
 import type { EventWithDetails, DashboardStats } from '@/lib/types';
+import { DashboardSkeleton } from '@/components/LoadingSkeletons';
+import StatsCard from '@/components/StatsCard';
+import EventCard from '@/components/EventCard';
 
 export default function HomePage() {
   const [stats, setStats] = useState<DashboardStats | null>(null);
@@ -35,14 +39,7 @@ export default function HomePage() {
   };
 
   if (loading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading Madison events...</p>
-        </div>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   return (
@@ -122,37 +119,38 @@ export default function HomePage() {
             </h3>
             
             <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              <div className="text-center p-6 bg-white rounded-lg shadow-sm">
-                <div className="flex items-center justify-center w-12 h-12 bg-blue-100 rounded-lg mx-auto mb-4">
-                  <BarChart3 className="w-6 h-6 text-blue-600" />
-                </div>
-                <p className="text-3xl font-bold text-gray-900">{stats.totalSources}</p>
-                <p className="text-sm text-gray-600">Event Sources</p>
-              </div>
-              
-              <div className="text-center p-6 bg-white rounded-lg shadow-sm">
-                <div className="flex items-center justify-center w-12 h-12 bg-green-100 rounded-lg mx-auto mb-4">
-                  <Calendar className="w-6 h-6 text-green-600" />
-                </div>
-                <p className="text-3xl font-bold text-gray-900">{stats.totalEvents}</p>
-                <p className="text-sm text-gray-600">Total Events</p>
-              </div>
-              
-              <div className="text-center p-6 bg-white rounded-lg shadow-sm">
-                <div className="flex items-center justify-center w-12 h-12 bg-purple-100 rounded-lg mx-auto mb-4">
-                  <Clock className="w-6 h-6 text-purple-600" />
-                </div>
-                <p className="text-3xl font-bold text-gray-900">{stats.eventsLast7Days}</p>
-                <p className="text-sm text-gray-600">This Week</p>
-              </div>
-              
-              <div className="text-center p-6 bg-white rounded-lg shadow-sm">
-                <div className="flex items-center justify-center w-12 h-12 bg-indigo-100 rounded-lg mx-auto mb-4">
-                  <MapPin className="w-6 h-6 text-indigo-600" />
-                </div>
-                <p className="text-3xl font-bold text-gray-900">{stats.activeSources}</p>
-                <p className="text-sm text-gray-600">Active Sources</p>
-              </div>
+              <StatsCard
+                title="Event Sources"
+                value={stats.totalSources}
+                description="Event Sources"
+                icon={BarChart3}
+                iconColor="text-blue-600"
+                bgColor="bg-blue-100"
+              />
+              <StatsCard
+                title="Total Events"
+                value={stats.totalEvents}
+                description="Total Events"
+                icon={Calendar}
+                iconColor="text-green-600"
+                bgColor="bg-green-100"
+              />
+              <StatsCard
+                title="Events This Week"
+                value={stats.eventsLast7Days}
+                description="This Week"
+                icon={Clock}
+                iconColor="text-purple-600"
+                bgColor="bg-purple-100"
+              />
+              <StatsCard
+                title="Active Sources"
+                value={stats.activeSources}
+                description="Active Sources"
+                icon={MapPin}
+                iconColor="text-indigo-600"
+                bgColor="bg-indigo-100"
+              />
             </div>
           </div>
         </section>
@@ -170,40 +168,12 @@ export default function HomePage() {
           
           {recentEvents.length > 0 ? (
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {recentEvents.slice(0, 6).map((event) => (
-                <div key={event.id} className="card hover:shadow-md transition-shadow">
-                  <div className="flex items-start justify-between mb-3">
-                    <span className="badge badge-info">{event.category}</span>
-                    <span className="text-sm text-gray-500">
-                      {new Date(event.startDateTime).toLocaleDateString()}
-                    </span>
-                  </div>
-                  
-                  <h4 className="font-semibold text-gray-900 mb-2 line-clamp-2">
-                    {event.title}
-                  </h4>
-                  
-                  {event.description && (
-                    <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-                      {event.description}
-                    </p>
-                  )}
-                  
-                  <div className="flex items-center justify-between text-sm">
-                    <div className="flex items-center gap-1 text-gray-500">
-                      <MapPin className="w-4 h-4" />
-                      <span className="truncate">
-                        {event.venue?.name || event.customLocation || 'TBD'}
-                      </span>
-                    </div>
-                    
-                    {event.price && (
-                      <span className="text-green-600 font-medium">
-                        {String(event.price).toLowerCase().includes('free') ? 'Free' : String(event.price)}
-                      </span>
-                    )}
-                  </div>
-                </div>
+              {recentEvents.slice(0, 6).map((event, index) => (
+                <EventCard 
+                  key={event.id} 
+                  event={event} 
+                  priority={index < 2} // Prioritize first 2 images for LCP
+                />
               ))}
             </div>
           ) : (

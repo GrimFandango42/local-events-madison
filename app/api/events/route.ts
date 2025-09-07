@@ -1,6 +1,7 @@
-// API route for events
+// API route for events with caching and performance optimizations
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
+import { withCache, cacheKeys, createCacheKey } from '@/lib/cache';
 import { DateTime } from 'luxon';
 import type { EventFilters, PaginatedResponse, EventWithDetails } from '@/lib/types';
 import type { Prisma } from '@prisma/client';
@@ -21,13 +22,14 @@ export async function GET(request: NextRequest) {
       neighborhood: searchParams.get('neighborhood') || undefined,
     };
 
-    // Pagination (defaults aligned with tests)
+    // Enhanced pagination with proper defaults
     const parseIntSafe = (value: string | null, def: number) => {
       const n = parseInt(String(value ?? ''));
       return Number.isFinite(n) && n > 0 ? n : def;
     };
     const page = parseIntSafe(searchParams.get('page'), 1);
-    const limit = Math.min(parseIntSafe(searchParams.get('limit'), 10), 100);
+    const pageSize = parseIntSafe(searchParams.get('pageSize'), 12); // Better default for UI
+    const limit = Math.min(parseIntSafe(searchParams.get('limit'), pageSize), 100);
     const skip = (page - 1) * limit;
 
     // Build where clause
@@ -82,43 +84,96 @@ export async function GET(request: NextRequest) {
       };
     }
 
-    // Get events with relations
-    const [events, total] = await Promise.all([
-      prisma.event.findMany({
-        where,
-        include: {
-          venue: true,
-          source: {
+    // Create cache key based on filters and pagination
+    const cacheKey = createCacheKey(
+      'events',
+      page.toString(),
+      limit.toString(),
+      JSON.stringify(filters)
+    );
+
+    // Cache events data for better performance (1 minute for search results)
+    const response = await withCache(
+      cacheKey,
+      async (): Promise<PaginatedResponse<EventWithDetails>> => {
+        // Optimized parallel queries with selective fields
+        const [events, total] = await Promise.all([
+          prisma.event.findMany({
+            where,
             select: {
-              name: true,
-              sourceType: true,
+              id: true,
+              title: true,
+              description: true,
+              category: true,
+              startDateTime: true,
+              endDateTime: true,
+              timezone: true,
+              allDay: true,
+              price: true,
+              ticketUrl: true,
+              imageUrl: true,
+              tags: true,
+              customLocation: true,
+              sourceUrl: true,
+              status: true,
+              venue: {
+                select: {
+                  id: true,
+                  name: true,
+                  venueType: true,
+                  address: true,
+                  city: true,
+                  state: true,
+                  neighborhood: true,
+                  website: true,
+                },
+              },
+              source: {
+                select: {
+                  id: true,
+                  name: true,
+                  sourceType: true,
+                },
+              },
+              createdAt: true,
             },
+            orderBy: { startDateTime: 'asc' },
+            skip,
+            take: limit,
+          }),
+          prisma.event.count({ where }),
+        ]);
+
+        return {
+          success: true,
+          data: events as EventWithDetails[],
+          pagination: {
+            page,
+            pageSize: limit,
+            total,
+            hasMore: skip + limit < total,
+            // Legacy fields for compatibility
+            limit,
+            totalPages: Math.ceil(total / limit),
+            hasNext: skip + limit < total,
+            hasPrev: page > 1,
           },
-        },
-        orderBy: { startDateTime: 'asc' },
-        skip,
-        take: limit,
-      }),
-      prisma.event.count({ where }),
-    ]);
-
-    const response: PaginatedResponse<EventWithDetails> = {
-      success: true,
-      data: events as EventWithDetails[],
-      pagination: {
-        page,
-        limit,
-        total,
-        totalPages: Math.ceil(total / limit),
-        hasNext: skip + limit < total,
-        hasPrev: page > 1,
-        // Extra field expected by tests
-        // @ts-ignore
-        hasMore: skip + limit < total,
+        };
       },
-    };
+      filters.search ? 30 : 60 // Cache search results for 30s, regular results for 1 minute
+    );
 
-    return NextResponse.json(response);
+    return NextResponse.json(
+      response,
+      {
+        headers: {
+          'Cache-Control': filters.search 
+            ? 'public, s-maxage=30, stale-while-revalidate=60'
+            : 'public, s-maxage=60, stale-while-revalidate=120',
+          'Content-Type': 'application/json',
+        },
+      }
+    );
   } catch (error) {
     console.error('Events API error:', error);
     const message = (error as Error)?.message || 'Failed to fetch events';
@@ -138,3 +193,4 @@ export async function POST(_request: NextRequest) {
 }
 
 // Provide a default export so Jest tests can import as a module
+export default { GET, POST };

@@ -1,4 +1,4 @@
-// Database connection and Prisma client
+// Database connection and Prisma client with optimizations
 import { PrismaClient } from '@prisma/client';
 
 const globalForPrisma = globalThis as unknown as {
@@ -8,7 +8,21 @@ const globalForPrisma = globalThis as unknown as {
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
-    log: ['query'],
+    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+    errorFormat: 'pretty',
+    datasources: {
+      db: {
+        url: process.env.DATABASE_URL,
+      },
+    },
   });
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
+
+// Connection pool optimization for production
+if (process.env.NODE_ENV === 'production') {
+  // Gracefully close Prisma Client when the application shuts down
+  process.on('beforeExit', async () => {
+    await prisma.$disconnect();
+  });
+}

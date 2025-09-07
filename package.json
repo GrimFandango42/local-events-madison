@@ -26,13 +26,14 @@
     "db:seed": "node scripts/create-sample-data.js",
     "setup": "node scripts/quick-setup.js",
     "setup:city": "node scripts/quick-setup.js",
-    "config:validate": "node scripts/validate-config.js"
-    ,
-    "links:check": "tsx scripts/check-links.ts"
-    ,
-    "purge:old": "tsx scripts/purge-old-events.ts"
-    ,
-    "dev:clean": "node scripts/dev-clean.js"
+    "config:validate": "node scripts/validate-config.js",
+    "links:check": "tsx scripts/check-links.ts",
+    "purge:old": "tsx scripts/purge-old-events.ts",
+    "dev:clean": "node scripts/dev-clean.js",
+    "analyze": "node scripts/analyze-bundle.js",
+    "perf:test": "node scripts/performance-test.js",
+    "perf:monitor": "npm run perf:test && npm run analyze",
+    "lint:perf": "eslint . --ext .ts,.tsx --max-warnings 0"
   },
   "keywords": [
     "events",
@@ -56,13 +57,14 @@
     "@playwright/mcp": "^0.0.36",
     "@prisma/client": "^5.0.0",
     "@types/node": "^20.0.0",
+    "@types/node-fetch": "^2.6.13",
     "@types/react": "^18.0.0",
     "lucide-react": "^0.294.0",
     "luxon": "^3.4.4",
     "next": "^14.0.0",
+    "node-fetch": "^3.3.2",
     "playwright": "^1.46.0",
     "prisma": "^5.0.0",
-    
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
     "redis": "^4.0.0",
@@ -71,6 +73,8 @@
     "zod": "^3.23.8"
   },
   "devDependencies": {
+    "@babel/core": "^7.25.0",
+    "@babel/runtime": "^7.25.0",
     "@tailwindcss/forms": "^0.5.10",
     "@tailwindcss/typography": "^0.5.16",
     "@types/jest": "^29.0.0",
@@ -78,6 +82,7 @@
     "@typescript-eslint/eslint-plugin": "^6.0.0",
     "@typescript-eslint/parser": "^6.0.0",
     "autoprefixer": "^10.4.21",
+    "babel-jest": "^29.7.0",
     "eslint": "^8.0.0",
     "eslint-config-next": "^14.0.0",
     "eslint-config-prettier": "^10.1.8",
@@ -86,9 +91,6 @@
     "node-mocks-http": "^1.14.0",
     "postcss": "^8.5.6",
     "prettier": "^3.0.0",
-    "@babel/core": "^7.25.0",
-    "babel-jest": "^29.7.0",
-    "@babel/runtime": "^7.25.0",
     "tsx": "^4.19.0"
   },
   "engines": {

@@ -1,0 +1,29 @@
+{
+  "timestamp": "2025-09-07T06:11:58.722Z",
+  "url": "http://localhost:3000",
+  "metrics": {
+    "timing": {
+      "navigationStart": 0,
+      "loadEventEnd": 2800,
+      "domContentLoaded": 1500,
+      "firstPaint": 1200,
+      "firstContentfulPaint": 1300
+    },
+    "memory": {
+      "jsHeapSizeLimit": 4294705152,
+      "totalJSHeapSize": 12500000,
+      "usedJSHeapSize": 8200000
+    },
+    "coreWebVitals": {
+      "largestContentfulPaint": 2100,
+      "cumulativeLayoutShift": 0.08,
+      "firstInputDelay": 45
+    }
+  },
+  "assessment": {
+    "loadTime": "✅ Good",
+    "fcp": "✅ Good",
+    "lcp": "✅ Good",
+    "cls": "✅ Good"
+  }
+}

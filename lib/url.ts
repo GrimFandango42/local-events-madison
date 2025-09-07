@@ -11,7 +11,7 @@ export function normalizeUrl(url?: string | null): string | undefined {
     // Force https where possible
     if (u.protocol === 'http:') u.protocol = 'https:';
     // Remove empty query
-    if ([...u.searchParams.keys()].length === 0) u.search = '';
+    if (Array.from(u.searchParams.keys()).length === 0) u.search = '';
     return u.toString();
   } catch {
     return url || undefined;

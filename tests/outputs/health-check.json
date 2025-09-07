@@ -1,0 +1,16 @@
+{
+  "timestamp": "2025-09-07T06:11:58.721Z",
+  "response": {
+    "ok": true,
+    "node": "v24.2.0",
+    "env": {
+      "NODE_ENV": "development",
+      "DATABASE_URL": true,
+      "LOCAL_EVENTS_API_URL": "not set"
+    },
+    "prisma": "ok",
+    "timestamps": {
+      "now": "2025-09-07T06:11:58.715Z"
+    }
+  }
+}

@@ -2,7 +2,14 @@
 const nextConfig = {
   experimental: {
     esmExternals: true,
+    optimizeCss: true,
   },
+  
+  // Performance optimizations
+  compress: true,
+  poweredByHeader: false,
+  
+  // Image optimization with better defaults
   images: {
     domains: [
       'localhost',
@@ -13,10 +20,46 @@ const nextConfig = {
       'isthmus.com',
       // Add other venue domains as needed
     ],
+    formats: ['image/avif', 'image/webp'],
+    minimumCacheTTL: 60,
+    dangerouslyAllowSVG: true,
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
+  
+  // Environment variables
   env: {
     DATABASE_URL: process.env.DATABASE_URL,
     REDIS_URL: process.env.REDIS_URL,
+  },
+  
+  // Webpack optimizations
+  webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {
+    // Enable tree shaking
+    config.optimization = {
+      ...config.optimization,
+      sideEffects: false,
+    };
+    
+    // Reduce bundle size in production
+    if (!dev && !isServer) {
+      config.optimization.splitChunks = {
+        chunks: 'all',
+        cacheGroups: {
+          vendor: {
+            test: /[\\/]node_modules[\\/]/,
+            name: 'vendors',
+            chunks: 'all',
+          },
+          common: {
+            minChunks: 2,
+            priority: -10,
+            reuseExistingChunk: true,
+          },
+        },
+      };
+    }
+    
+    return config;
   },
   async headers() {
     const csp = [

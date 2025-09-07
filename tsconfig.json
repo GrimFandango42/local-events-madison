@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
-    "target": "es5",
-    "lib": ["dom", "dom.iterable", "es6"],
+    "target": "es2015",
+    "lib": ["dom", "dom.iterable", "es6", "es2015"],
     "allowJs": true,
     "skipLibCheck": true,
     "strict": true,
@@ -30,6 +30,7 @@
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
   "exclude": [
     "node_modules",
-    "chatgpt v1/**"
+    "chatgpt v1/**",
+    "claude-code-sandbox/**"
   ]
 }

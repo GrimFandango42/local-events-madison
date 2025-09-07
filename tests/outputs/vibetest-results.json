@@ -1,0 +1,44 @@
+{
+  "test_id": "demo-1757225518733",
+  "timestamp": "2025-09-07T06:11:58.733Z",
+  "overall_status": "medium-severity",
+  "status_emoji": "🟡",
+  "status_description": "Minor issues found that should be addressed",
+  "total_issues": 4,
+  "successful_agents": 3,
+  "failed_agents": 0,
+  "duration_formatted": "2m 15s",
+  "severity_breakdown": {
+    "high_severity": [],
+    "medium_severity": [
+      {
+        "agent": "Agent 2",
+        "category": "performance",
+        "description": "Search results take longer than expected to load (>3s)"
+      }
+    ],
+    "low_severity": [
+      {
+        "agent": "Agent 1",
+        "category": "ui",
+        "description": "Homepage hero section could use better contrast"
+      },
+      {
+        "agent": "Agent 3",
+        "category": "accessibility",
+        "description": "Some interactive elements missing focus indicators"
+      },
+      {
+        "agent": "Agent 1",
+        "category": "usability",
+        "description": "Navigation breadcrumbs would improve user orientation"
+      }
+    ]
+  },
+  "recommendations": [
+    "Optimize search query performance",
+    "Improve color contrast on homepage",
+    "Add focus indicators to all interactive elements",
+    "Consider adding breadcrumb navigation"
+  ]
+}

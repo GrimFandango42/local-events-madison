@@ -1,0 +1,59 @@
+{
+  "timestamp": "2025-09-07T06:11:58.732Z",
+  "url": "http://localhost:3000",
+  "scanType": "Comprehensive Security Analysis",
+  "results": {
+    "headers": {
+      "Content-Security-Policy": {
+        "status": "present",
+        "score": "good"
+      },
+      "X-Frame-Options": {
+        "status": "present",
+        "value": "DENY",
+        "score": "excellent"
+      },
+      "X-Content-Type-Options": {
+        "status": "present",
+        "value": "nosniff",
+        "score": "good"
+      },
+      "Referrer-Policy": {
+        "status": "present",
+        "value": "strict-origin-when-cross-origin",
+        "score": "good"
+      },
+      "Permissions-Policy": {
+        "status": "missing",
+        "score": "warning"
+      }
+    },
+    "vulnerabilities": {
+      "critical": 0,
+      "high": 0,
+      "medium": 1,
+      "low": 2,
+      "info": 3
+    },
+    "findings": [
+      {
+        "severity": "medium",
+        "category": "headers",
+        "title": "Missing Permissions-Policy header",
+        "description": "Consider adding Permissions-Policy header for better security"
+      },
+      {
+        "severity": "low",
+        "category": "cookies",
+        "title": "Session cookies security",
+        "description": "Ensure all cookies have Secure and HttpOnly flags"
+      },
+      {
+        "severity": "low",
+        "category": "form",
+        "title": "CSRF protection",
+        "description": "Verify CSRF tokens are implemented for form submissions"
+      }
+    ]
+  }
+}

@@ -52,9 +52,16 @@ async function createSampleData() {
 
     console.log('✅ Created venues:', majestic.name, memorialUnion.name, overture.name);
 
-    // Create sample event sources
-    const majesticSource = await prisma.eventSource.create({
-      data: {
+    // Create sample event sources (upsert to avoid duplicate URL errors)
+    const majesticSource = await prisma.eventSource.upsert({
+      where: { url: 'https://majesticmadison.com/events' },
+      update: {
+        name: 'Majestic Theatre Events',
+        sourceType: 'venue',
+        venueId: majestic.id,
+        isActive: true
+      },
+      create: {
         name: 'Majestic Theatre Events',
         url: 'https://majesticmadison.com/events',
         sourceType: 'venue',
@@ -76,8 +83,15 @@ async function createSampleData() {
       }
     });
 
-    const unionSource = await prisma.eventSource.create({
-      data: {
+    const unionSource = await prisma.eventSource.upsert({
+      where: { url: 'https://union.wisc.edu/events' },
+      update: {
+        name: 'Memorial Union Events',
+        sourceType: 'venue',
+        venueId: memorialUnion.id,
+        isActive: true
+      },
+      create: {
         name: 'Memorial Union Events',
         url: 'https://union.wisc.edu/events',
         sourceType: 'venue',
