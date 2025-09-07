@@ -29,6 +29,8 @@
     "config:validate": "node scripts/validate-config.js"
     ,
     "links:check": "tsx scripts/check-links.ts"
+    ,
+    "purge:old": "tsx scripts/purge-old-events.ts"
   },
   "keywords": [
     "events",

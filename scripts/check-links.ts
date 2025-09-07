@@ -1,6 +1,7 @@
 // Link validation script: checks event URLs and records results.
 import { PrismaClient } from '@prisma/client';
 import fetch from 'node-fetch';
+import { normalizeUrl } from '@/lib/url';
 
 const prisma = new PrismaClient();
 
@@ -52,7 +53,7 @@ async function main() {
   let okCount = 0, badCount = 0;
   for (const item of urls) {
     const { url, eventId } = item;
-    const res = await headOrGet(url);
+    const res = await headOrGet(normalizeUrl(url) || url);
     await prisma.linkCheck.create({
       data: {
         url,
@@ -74,4 +75,3 @@ main().then(() => prisma.$disconnect()).catch(async (e) => {
   await prisma.$disconnect();
   process.exit(1);
 });
-

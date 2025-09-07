@@ -2,6 +2,7 @@
 import { EventEmitter } from 'events';
 import { PrismaClient } from '@prisma/client';
 import { EventDateParser } from '../../lib/dateParser';
+import { normalizeUrl } from '../../lib/url';
 
 interface ScrapingResult {
   success: boolean;
@@ -302,7 +303,7 @@ export class MCPEventCollector extends EventEmitter {
       category,
       price: price?.trim(),
       imageUrl: imageUrl ?? undefined,
-      sourceUrl: source.url,
+      sourceUrl: normalizeUrl(source.url),
       tags
     };
   }
