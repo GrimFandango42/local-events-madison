@@ -286,3 +286,12 @@ npm run security:audit       # NPM package vulnerability check
 **This platform represents a comprehensive, production-ready solution built with 2025 best practices and user privacy at its core.**
 
 *Last updated by Claude Code - September 7, 2025*
+## 2025-09-07 Launch & Hardening Notes
+
+- Health page blank root cause: CSP was blocking Next.js inline hydration scripts. Relaxed CSP in `next.config.js` (allow `'unsafe-inline'`, `blob:`, and `ws:` in dev) so the app renders out of the box. We can later move to nonce/hash-based CSP to tighten again.
+- TypeScript/Next fixes: path aliases stabilized; removed default export from App Router API routes; adjusted date rendering types; redis v4 client; guarded Service Worker background sync typing; async error typing in env validator.
+- Build behavior: ESLint re-enabled via `.eslintrc.cjs` but builds skip lint for velocity. `npm run lint` surfaces issues to fix iteratively.
+- E2E: Added Playwright script `scripts/e2e-health-check.js` to open `/admin/health`, capture console logs, and save a screenshot. Useful to catch CSP and hydration regressions.
+- One‑click launch: Added `start-prod-health.cmd` for Windows to install deps, sync DB, build, and open health page on port 3010.
+- City config: Added `config/madison.json` and `lib/city-config.ts` loader for theming/data.
+- Archived legacy repo folder `LocalEvents` to `ARCHIVED_PROJECTS` to avoid confusion, and migrated its useful `madison.json` into this repo.

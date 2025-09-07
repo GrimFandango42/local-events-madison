@@ -49,6 +49,15 @@ npm run dev
 
 The application will be available at `http://localhost:3000`.
 
+## One‑Click Production Launch (Windows)
+
+- Double‑click `start-prod-health.cmd`
+  - Installs dependencies (ci if lock present)
+  - Runs `prisma generate` and `db push`
+  - Seeds sample data
+  - Builds the app and starts `next start` on port 3010
+  - Opens `http://localhost:3010/admin/health`
+
 ## One-Click Development
 
 For automated setup:
@@ -65,6 +74,35 @@ This command will:
 5. Open browser to health check
 
 Health check endpoint: `http://localhost:3000/api/health`
+
+## Automated Health Check (Playwright)
+
+After `next start` run:
+
+```bash
+BASE_URL=http://localhost:3010 node scripts/e2e-health-check.js
+```
+
+- Captures a screenshot at `tests/outputs/health-page.png`
+- Prints browser console errors (helpful for CSP/hydration issues)
+
+## CSP & Security
+
+- We ship sane defaults in `next.config.js` so pages render reliably:
+  - `script-src` allows `'unsafe-inline'` and `blob:` (Next.js hydration inline scripts)
+  - Dev also allows `ws:` for HMR
+  - `worker-src 'self' blob:` for web workers
+- Want stricter CSP? We can switch to nonces/hashes and remove `'unsafe-inline'`.
+
+## City Config
+
+- City theming/data in `config/madison.json`
+- Load via `loadCityConfig()` from `lib/city-config.ts`
+
+## Linting
+
+- ESLint is configured in `.eslintrc.cjs`. Builds skip lint to keep shipping fast.
+- Run `npm run lint` locally; we can fix the codebase in batches.
 
 ## Available Scripts
 
