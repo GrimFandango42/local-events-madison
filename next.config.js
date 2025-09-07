@@ -5,6 +5,9 @@ const nextConfig = {
     optimizeCss: true,
   },
   eslint: {
+    ignoreDuringBuilds: true,
+  },
+  eslint: {
     // Skip ESLint during production builds to unblock deploys
     ignoreDuringBuilds: true,
   },
