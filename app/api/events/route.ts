@@ -56,9 +56,9 @@ export async function GET(request: NextRequest) {
       );
     }
     
-    const { page, pageSize, limit: requestedLimit } = paginationValidation.data!;
-    const limit = requestedLimit || pageSize;
-    const skip = (page - 1) * limit;
+    const { page = 1, pageSize = 12, limit: requestedLimit } = paginationValidation.data! as any;
+    const limit = (requestedLimit ?? pageSize) || 12;
+    const skip = ((page ?? 1) - 1) * limit;
 
     // Build where clause
     const where: Prisma.EventWhereInput = {};
@@ -177,11 +177,8 @@ export async function GET(request: NextRequest) {
           data: events as EventWithDetails[],
           pagination: {
             page,
-            pageSize: limit,
-            total,
-            hasMore: skip + limit < total,
-            // Legacy fields for compatibility
             limit,
+            total,
             totalPages: Math.ceil(total / limit),
             hasNext: skip + limit < total,
             hasPrev: page > 1,
@@ -220,5 +217,4 @@ export async function POST(_request: NextRequest) {
   );
 }
 
-// Provide a default export so Jest tests can import as a module
-export default { GET, POST };
+// Note: Next.js App Router API routes should only export HTTP method functions (no default export)

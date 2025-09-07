@@ -76,7 +76,7 @@ class EnvironmentValidator {
     }
   }
   
-  private async checkFilePermissions(): void {
+  private async checkFilePermissions(): Promise<void> {
     const sensitiveFiles = ['.env', '.env.local', '.env.production'];
     
     for (const file of sensitiveFiles) {
@@ -95,7 +95,7 @@ class EnvironmentValidator {
     }
   }
   
-  private async checkDatabaseConnection(): void {
+  private async checkDatabaseConnection(): Promise<void> {
     try {
       const { PrismaClient } = await import('@prisma/client');
       const prisma = new PrismaClient();
@@ -105,11 +105,12 @@ class EnvironmentValidator {
       
       console.log('✅ Database connection successful');
     } catch (error) {
-      this.errors.push(`Database connection failed: ${error.message}`);
+      const msg = (error as any)?.message || String(error);
+      this.errors.push(`Database connection failed: ${msg}`);
     }
   }
   
-  private async checkExternalServices(): void {{
+  private async checkExternalServices(): Promise<void> {
     // Check Redis connection if configured
     if (process.env.REDIS_URL) {
       try {
@@ -122,7 +123,8 @@ class EnvironmentValidator {
         
         console.log('✅ Redis connection successful');
       } catch (error) {
-        this.warnings.push(`Redis connection failed: ${error.message}`);
+        const msg = (error as any)?.message || String(error);
+        this.warnings.push(`Redis connection failed: ${msg}`);
       }
     } else {
       this.warnings.push('Redis URL not configured - using in-memory cache');
@@ -135,7 +137,8 @@ class EnvironmentValidator {
         // In a real implementation, you'd check specific MCP endpoints
         console.log('✅ MCP services check passed (basic)');
       } catch (error) {
-        this.warnings.push(`MCP services may be unavailable: ${error.message}`);
+        const msg = (error as any)?.message || String(error);
+        this.warnings.push(`MCP services may be unavailable: ${msg}`);
       }
     }
   }

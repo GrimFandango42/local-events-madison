@@ -55,7 +55,7 @@ export async function registerServiceWorker(): Promise<boolean> {
     if ('sync' in registration) {
       // Request background sync when connection is restored
       window.addEventListener('online', () => {
-        registration.sync.register('refresh-events').catch(console.error);
+        (registration as any).sync?.register('refresh-events')?.catch?.(console.error);
       });
     }
 
@@ -192,7 +192,7 @@ export function handleNetworkStatus(): void {
 
     if (isOnline && swRegistration) {
       // Try to sync data when back online
-      swRegistration.sync?.register('refresh-events').catch(console.error);
+      (swRegistration as any).sync?.register('refresh-events')?.catch?.(console.error);
     }
   };
 

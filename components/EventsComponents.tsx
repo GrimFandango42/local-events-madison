@@ -79,12 +79,12 @@ const EventCard = memo(function EventCard({ event }: { event: EventWithDetails }
           </div>
           <div className="text-right flex-shrink-0 ml-4">
             <div className="text-lg font-semibold text-gray-900">
-              <time dateTime={event.startDateTime} title={`Event date: ${eventDate}`}>
+              <time dateTime={(event.startDateTime instanceof Date) ? event.startDateTime.toISOString() : event.startDateTime as any} title={`Event date: ${eventDate}`}>
                 {eventDate}
               </time>
             </div>
             <div className="text-sm text-gray-600">
-              <time dateTime={event.startDateTime} title={`Event time: ${eventTime}`}>
+              <time dateTime={(event.startDateTime instanceof Date) ? event.startDateTime.toISOString() : event.startDateTime as any} title={`Event time: ${eventTime}`}>
                 {eventTime}
               </time>
             </div>
@@ -115,7 +115,7 @@ const EventCard = memo(function EventCard({ event }: { event: EventWithDetails }
             
             <div className="flex items-center gap-2">
               <Clock className="w-4 h-4 flex-shrink-0" aria-hidden="true" />
-              <time dateTime={event.startDateTime}>
+              <time dateTime={(event.startDateTime instanceof Date) ? event.startDateTime.toISOString() : event.startDateTime as any}>
                 {eventTime}
               </time>
             </div>

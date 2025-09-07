@@ -88,7 +88,9 @@ export const RateLimitSchema = z.object({
 // Environment validation schema
 export const EnvironmentSchema = z.object({
   NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-  DATABASE_URL: z.string().min(1),
+  DATABASE_URL: z.string().min(1).refine((url) => {
+    return url.startsWith('file:') || url.startsWith('postgresql:') || url.startsWith('mysql:');
+  }, 'DATABASE_URL must be a valid database connection string'),
   REDIS_URL: z.string().optional(),
   LOCAL_EVENTS_API_URL: z.string().url().optional(),
   PORT: z.string().regex(/^\d+$/).transform(Number).default('3000'),

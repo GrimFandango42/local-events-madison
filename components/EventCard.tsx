@@ -9,9 +9,10 @@ interface EventCardProps {
 }
 
 const EventCard = memo(function EventCard({ event, priority = false }: EventCardProps) {
-  const formatDate = (dateString: string) => {
+  const formatDate = (dateInput: Date | string) => {
     try {
-      return new Date(dateString).toLocaleDateString('en-US', {
+      const d = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
+      return d.toLocaleDateString('en-US', {
         month: 'short',
         day: 'numeric',
         year: 'numeric'
@@ -21,9 +22,10 @@ const EventCard = memo(function EventCard({ event, priority = false }: EventCard
     }
   };
 
-  const formatTime = (dateString: string) => {
+  const formatTime = (dateInput: Date | string) => {
     try {
-      return new Date(dateString).toLocaleTimeString('en-US', {
+      const d = typeof dateInput === 'string' ? new Date(dateInput) : dateInput;
+      return d.toLocaleTimeString('en-US', {
         hour: 'numeric',
         minute: '2-digit',
         hour12: true
@@ -61,14 +63,14 @@ const EventCard = memo(function EventCard({ event, priority = false }: EventCard
         <div className="text-right text-sm text-gray-500">
           <div className="flex items-center gap-1" title={`Event date: ${formatDate(event.startDateTime)}`}>
             <Calendar className="w-4 h-4" aria-hidden="true" />
-            <time dateTime={event.startDateTime}>
+            <time dateTime={(event.startDateTime instanceof Date) ? event.startDateTime.toISOString() : event.startDateTime}>
               {formatDate(event.startDateTime)}
             </time>
           </div>
           {!event.allDay && (
             <div className="flex items-center gap-1 mt-1" title={`Event time: ${formatTime(event.startDateTime)}`}>
               <Clock className="w-4 h-4" aria-hidden="true" />
-              <time dateTime={event.startDateTime}>
+              <time dateTime={(event.startDateTime instanceof Date) ? event.startDateTime.toISOString() : event.startDateTime}>
                 {formatTime(event.startDateTime)}
               </time>
             </div>

@@ -1,5 +1,5 @@
 // In-memory cache and Redis cache utilities for performance optimization
-import { Redis } from 'redis';
+import { createClient, type RedisClientType } from 'redis';
 
 // In-memory cache fallback
 class InMemoryCache {
@@ -89,7 +89,7 @@ class InMemoryCache {
 
 // Cache factory
 class CacheManager {
-  private redisClient: Redis | null = null;
+  private redisClient: RedisClientType | null = null;
   private inMemoryCache = new InMemoryCache();
   private isRedisConnected = false;
 
@@ -104,20 +104,15 @@ class CacheManager {
     }
 
     try {
-      this.redisClient = new Redis(process.env.REDIS_URL, {
-        retryDelayOnFailover: 100,
-        enableReadyCheck: true,
-        maxRetriesPerRequest: 3,
-        lazyConnect: true,
-      });
+      this.redisClient = createClient({ url: process.env.REDIS_URL });
 
       this.redisClient.on('connect', () => {
         console.log('Redis connected');
         this.isRedisConnected = true;
       });
 
-      this.redisClient.on('error', (err) => {
-        console.warn('Redis connection error, falling back to in-memory cache:', err.message);
+      this.redisClient.on('error', (err: any) => {
+        console.warn('Redis connection error, falling back to in-memory cache:', err?.message || err);
         this.isRedisConnected = false;
       });
 
@@ -125,6 +120,8 @@ class CacheManager {
         console.log('Redis connection ended');
         this.isRedisConnected = false;
       });
+
+      await this.redisClient.connect();
 
       await this.redisClient.connect();
     } catch (error) {

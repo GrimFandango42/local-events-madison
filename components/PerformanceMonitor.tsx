@@ -189,7 +189,7 @@ const PerformanceMonitor = () => {
             <div className="bg-gray-50 p-2 rounded">
               <div className="text-gray-600">DOM Load</div>
               <div className="font-mono">
-                {formatTime(metrics.navigation.loadEventEnd - metrics.navigation.navigationStart)}
+                {formatTime(metrics.navigation.loadEventEnd - metrics.navigation.startTime)}
               </div>
             </div>
             {metrics.paint?.['first-paint'] && (
