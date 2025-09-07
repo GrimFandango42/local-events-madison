@@ -31,6 +31,8 @@
     "links:check": "tsx scripts/check-links.ts"
     ,
     "purge:old": "tsx scripts/purge-old-events.ts"
+    ,
+    "dev:clean": "node scripts/dev-clean.js"
   },
   "keywords": [
     "events",

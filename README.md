@@ -99,6 +99,17 @@ Troubleshooting (Windows): If Prisma shows an EPERM rename on `query_engine-wind
 
 ---
 
+## 🧰 VS Code: Clean Launch To Health
+
+Use the built‑in launch config to clean caches, sync the DB, start Next.js, and open the visual health page automatically:
+
+- Run and Debug → "Launch Dev (Clean + Health)"
+- This runs: `npm run dev:clean && npm run db:generate && npm run db:push`, then `npm run dev`, then opens `/admin/health`.
+
+If you prefer not to seed every time, this launch avoids the seed step (which can hit unique constraints on repeat runs).
+
+---
+
 ## 🏗️ Architecture
 
 ### 🧱 **Tech Stack**
