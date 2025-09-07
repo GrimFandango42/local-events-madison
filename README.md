@@ -83,6 +83,22 @@ npm run dev
 
 ---
 
+## 🔘 One‑Click Dev (Windows/macOS/Linux)
+
+To install deps, generate/push the DB schema, seed sample data, start Next.js on a free port, and auto‑open your browser:
+
+```bash
+npm run dev:oneclick
+```
+
+On Windows, you can also double‑click `start-dev.cmd`.
+
+Health check: `http://localhost:3000/api/health` (shows Prisma connectivity and env presence).
+
+Troubleshooting (Windows): If Prisma shows an EPERM rename on `query_engine-windows.dll.node`, the launcher auto‑repairs by clearing locked engine folders and retrying. If needed, close any running Node/Next terminals and press Enter to retry.
+
+---
+
 ## 🏗️ Architecture
 
 ### 🧱 **Tech Stack**
