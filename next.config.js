@@ -129,18 +129,21 @@ const nextConfig = {
     const dev = process.env.NODE_ENV !== 'production';
 
     if (dev) {
-      // Development headers - Allow Replit preview iframe
+      // Development headers - Completely override Next.js defaults for Replit preview
       return [
         {
           source: '/(.*)',
           headers: [
-            // Allow Replit preview iframe embedding
-            { key: 'X-Frame-Options', value: 'ALLOWALL' },
-            // Allow Replit domains for iframe embedding
-            { key: 'Content-Security-Policy', value: "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: *; frame-ancestors *;" },
+            // Critical: Remove X-Frame-Options entirely to allow iframe embedding
+            // Next.js sets DENY by default, this overrides it
+            { key: 'X-Frame-Options', value: '' },
+            // Allow all frame ancestors for Replit preview
+            { key: 'Content-Security-Policy', value: "default-src * 'unsafe-inline' 'unsafe-eval' data: blob:; frame-ancestors *; object-src 'none';" },
             { key: 'X-Content-Type-Options', value: 'nosniff' },
-            // Minimal caching for development
-            { key: 'Cache-Control', value: 'no-cache, no-store, must-revalidate' },
+            // Disable caching in development
+            { key: 'Cache-Control', value: 'no-cache, no-store, must-revalidate, max-age=0' },
+            { key: 'Pragma', value: 'no-cache' },
+            { key: 'Expires', value: '0' },
           ],
         },
         {
