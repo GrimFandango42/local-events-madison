@@ -38,16 +38,13 @@ const nextConfig = {
     return [];
   },
   
-  // Complete fix for Replit preview cross-origin issues
+  // Fix Replit preview cross-origin issue
   ...(process.env.NODE_ENV === 'development' && {
-    allowedDevOrigins: [
-      'localhost',
-      '127.0.0.1',
-      '0.0.0.0',
-      '*.replit.dev',
-      '*.replit.com',
-      process.env.REPLIT_DEV_DOMAIN || '',
-    ].filter(Boolean),
+    // Disable the strict origin checking for development on Replit
+    onDemandEntries: {
+      maxInactiveAge: 25 * 1000,
+      pagesBufferLength: 2,
+    },
   }),
   
   // Performance optimizations
