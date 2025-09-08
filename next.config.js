@@ -2,8 +2,23 @@
 const nextConfig = {
   experimental: {
     esmExternals: true,
-    optimizeCss: true,
+    optimizeCss: false, // Disable CSS optimization in dev for faster compilation
+    turbo: {
+      // Enable turbo mode for faster builds
+      moduleIdStrategy: 'deterministic',
+    },
   },
+  
+  // Development optimizations for Replit
+  ...(process.env.NODE_ENV === 'development' && {
+    swcMinify: false, // Disable SWC minification in dev for speed
+    typescript: {
+      ignoreBuildErrors: true, // Skip TS checks in dev for faster builds  
+    },
+    compiler: {
+      removeConsole: false, // Keep console logs in dev
+    },
+  }),
   eslint: {
     // Skip ESLint during production builds to unblock deploys
     ignoreDuringBuilds: true,
@@ -44,16 +59,35 @@ const nextConfig = {
     REDIS_URL: process.env.REDIS_URL,
   },
   
-  // Webpack optimizations
+  // Optimized Webpack configuration for faster dev builds
   webpack: (config, { buildId, dev, isServer, defaultLoaders, webpack }) => {
-    // Enable tree shaking
-    config.optimization = {
-      ...config.optimization,
-      sideEffects: false,
-    };
-    
-    // Reduce bundle size in production
-    if (!dev && !isServer) {
+    if (dev) {
+      // Development optimizations for faster compilation
+      config.optimization = {
+        ...config.optimization,
+        removeAvailableModules: false,
+        removeEmptyChunks: false,
+        splitChunks: false, // Disable split chunks in dev for speed
+      };
+      
+      // Use faster hashing in development
+      config.output.hashFunction = 'xxhash64';
+      
+      // Reduce module resolution time
+      config.resolve.modules = ['node_modules'];
+      config.resolve.symlinks = false;
+      
+      // Skip expensive transformations
+      config.optimization.usedExports = false;
+      config.optimization.sideEffects = false;
+      
+    } else {
+      // Production optimizations (kept existing code)
+      config.optimization = {
+        ...config.optimization,
+        sideEffects: false,
+      };
+      
       config.optimization.splitChunks = {
         chunks: 'all',
         cacheGroups: {
