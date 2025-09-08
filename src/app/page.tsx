@@ -1,211 +1,229 @@
-// Home page for Local Events platform - Fast loading, mobile-optimized
+// Mobile-optimized homepage - Lightweight for mobile devices
 'use client';
 
-import { useState, memo } from 'react';
+import { useState } from 'react';
 import Link from 'next/link';
-import { Calendar, MapPin, Search, Plus, BarChart3, Clock } from 'lucide-react';
-import type { EventWithDetails, DashboardStats } from '@/lib/types';
-import StatsCard from '@/components/StatsCard';
-import EventCard from '@/components/EventCard';
 
-export default memo(function HomePage() {
-  const [stats, setStats] = useState<DashboardStats | null>(null);
-  const [recentEvents, setRecentEvents] = useState<EventWithDetails[]>([]);
+// Simple, lightweight component without heavy dependencies
+export default function HomePage() {
+  const [showStats, setShowStats] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Load dashboard data only when user requests it
-  const fetchDashboardData = async () => {
+  const loadStats = async () => {
     setLoading(true);
-    setError(null);
     try {
       const response = await fetch('/api/dashboard');
       const data = await response.json();
       if (data.success) {
-        setStats(data.data);
-        setRecentEvents(data.data.recentEvents);
+        setShowStats(true);
       } else {
-        setError(data.error || 'Failed to load dashboard');
+        setError('Failed to load stats');
       }
-    } catch (error) {
-      console.error('Failed to fetch dashboard data:', error);
-      setError('Unable to load dashboard data');
+    } catch (e) {
+      setError('Unable to connect');
     } finally {
       setLoading(false);
     }
   };
 
-  const showingData = stats !== null;
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+    <div style={{ 
+      minHeight: '100vh', 
+      background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+      color: 'white',
+      fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif'
+    }}>
       
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex items-center justify-between h-16">
-            <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Calendar className="w-6 h-6 text-blue-600" />
-              </div>
-              <div>
-                <h1 className="text-xl font-bold text-gray-900">Local Events</h1>
-                <p className="text-sm text-gray-600">Madison, Wisconsin</p>
-              </div>
-            </div>
-            
-            <nav className="flex items-center gap-4">
-              <Link href="/events" className="text-gray-600 hover:text-gray-900 font-medium">
-                Events
-              </Link>
-              <Link href="/admin/sources" className="flex items-center gap-2 text-gray-600 hover:text-gray-900 font-medium">
-                <Plus className="w-4 h-4" />
-                Add Sources
-              </Link>
-            </nav>
+      {/* Simple Header */}
+      <header style={{ 
+        background: 'rgba(255,255,255,0.1)', 
+        backdropFilter: 'blur(10px)',
+        padding: '1rem'
+      }}>
+        <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div>
+            <h1 style={{ margin: 0, fontSize: '1.5rem', fontWeight: 'bold' }}>📅 Local Events</h1>
+            <p style={{ margin: 0, fontSize: '0.9rem', opacity: 0.8 }}>Madison, Wisconsin</p>
           </div>
+          <nav style={{ display: 'flex', gap: '1rem' }}>
+            <Link 
+              href="/events" 
+              style={{ 
+                color: 'white', 
+                textDecoration: 'none', 
+                padding: '0.5rem 1rem',
+                background: 'rgba(255,255,255,0.2)',
+                borderRadius: '0.5rem',
+                fontSize: '0.9rem'
+              }}
+            >
+              Events
+            </Link>
+          </nav>
         </div>
       </header>
 
-      {/* Error banner */}
+      {/* Error Message */}
       {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg mx-4 mt-4">
-          <p>{error}</p>
-          <button
-            onClick={fetchDashboardData}
-            className="underline font-medium ml-2"
+        <div style={{ 
+          background: 'rgba(239, 68, 68, 0.9)', 
+          padding: '1rem', 
+          margin: '1rem',
+          borderRadius: '0.5rem',
+          textAlign: 'center'
+        }}>
+          <p style={{ margin: 0 }}>{error}</p>
+          <button 
+            onClick={loadStats}
+            style={{ 
+              marginTop: '0.5rem',
+              background: 'transparent', 
+              border: '1px solid white', 
+              color: 'white',
+              padding: '0.5rem 1rem',
+              borderRadius: '0.25rem',
+              cursor: 'pointer'
+            }}
           >
             Retry
           </button>
         </div>
       )}
 
-      {/* Main content - loads instantly */}
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      {/* Main Content */}
+      <main style={{ padding: '2rem 1rem', textAlign: 'center', maxWidth: '800px', margin: '0 auto' }}>
         
-        {/* Hero section - always visible */}
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold text-gray-900 mb-4">
-            Discover Local Events in Madison
+        {/* Hero Section */}
+        <div style={{ marginBottom: '3rem' }}>
+          <h1 style={{ 
+            fontSize: 'clamp(2rem, 5vw, 3rem)', 
+            fontWeight: 'bold', 
+            marginBottom: '1rem',
+            lineHeight: 1.2
+          }}>
+            Discover Madison Events
           </h1>
-          <p className="text-xl text-gray-600 mb-8">
+          <p style={{ 
+            fontSize: '1.2rem', 
+            marginBottom: '2rem', 
+            opacity: 0.9,
+            lineHeight: 1.5
+          }}>
             Privacy-focused, Facebook-free event discovery for Madison, Wisconsin
           </p>
-          <div className="flex flex-col sm:flex-row justify-center gap-4">
+          
+          {/* Action Buttons */}
+          <div style={{ 
+            display: 'flex', 
+            flexDirection: 'column',
+            gap: '1rem', 
+            justifyContent: 'center',
+            alignItems: 'center'
+          }}>
             <Link 
               href="/events" 
-              className="bg-blue-600 text-white px-6 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors inline-flex items-center justify-center"
+              style={{
+                background: 'rgba(255,255,255,0.9)',
+                color: '#4f46e5',
+                padding: '1rem 2rem',
+                borderRadius: '0.75rem',
+                textDecoration: 'none',
+                fontWeight: '600',
+                fontSize: '1.1rem',
+                display: 'inline-block',
+                minWidth: '200px',
+                boxShadow: '0 4px 12px rgba(0,0,0,0.15)'
+              }}
             >
-              <Search className="w-5 h-5 mr-2" />
-              Browse Events
+              🔍 Browse Events
             </Link>
-            {!showingData && (
+            
+            {!showStats && (
               <button
-                onClick={fetchDashboardData}
+                onClick={loadStats}
                 disabled={loading}
-                className="bg-gray-100 text-gray-700 px-6 py-3 rounded-lg font-medium hover:bg-gray-200 transition-colors disabled:opacity-50 inline-flex items-center justify-center"
+                style={{
+                  background: 'rgba(255,255,255,0.2)',
+                  color: 'white',
+                  border: '1px solid rgba(255,255,255,0.3)',
+                  padding: '1rem 2rem',
+                  borderRadius: '0.75rem',
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  fontWeight: '600',
+                  fontSize: '1.1rem',
+                  opacity: loading ? 0.7 : 1,
+                  minWidth: '200px'
+                }}
               >
-                {loading ? (
-                  <>
-                    <div className="w-5 h-5 mr-2 animate-spin border-2 border-gray-500 border-t-transparent rounded-full"></div>
-                    Loading Stats...
-                  </>
-                ) : (
-                  <>
-                    <BarChart3 className="w-5 h-5 mr-2" />
-                    Load Platform Stats
-                  </>
-                )}
+                {loading ? '⏳ Loading...' : '📊 View Stats'}
               </button>
             )}
           </div>
         </div>
 
-        {/* Stats section - only shown when loaded */}
-        {showingData && stats && (
-          <div className="mb-8">
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-              <div className="bg-white p-6 rounded-lg shadow-sm">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-600">Total Events</p>
-                    <p className="text-2xl font-bold text-gray-900">{stats.totalEvents}</p>
-                    <p className="text-xs text-gray-500">{stats.eventsLast7Days} this week</p>
-                  </div>
-                  <Calendar className="w-8 h-8 text-blue-600" />
-                </div>
-              </div>
-              <div className="bg-white p-6 rounded-lg shadow-sm">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-600">Active Sources</p>
-                    <p className="text-2xl font-bold text-gray-900">{stats.activeSources}</p>
-                    <p className="text-xs text-gray-500">{stats.totalSources} total</p>
-                  </div>
-                  <Plus className="w-8 h-8 text-green-600" />
-                </div>
-              </div>
-              <div className="bg-white p-6 rounded-lg shadow-sm">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-600">Success Rate</p>
-                    <p className="text-2xl font-bold text-gray-900">{Math.round(stats.avgSuccessRate || 0)}%</p>
-                    <p className="text-xs text-gray-500">Average performance</p>
-                  </div>
-                  <BarChart3 className="w-8 h-8 text-purple-600" />
-                </div>
-              </div>
-              <div className="bg-white p-6 rounded-lg shadow-sm">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm text-gray-600">Recent Events</p>
-                    <p className="text-2xl font-bold text-gray-900">{stats.recentEvents.length}</p>
-                    <p className="text-xs text-gray-500">Last 7 days</p>
-                  </div>
-                  <Clock className="w-8 h-8 text-orange-600" />
-                </div>
-              </div>
-            </div>
-            
-            {/* Recent events */}
-            {stats.recentEvents.length > 0 && (
-              <div>
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">Recent Events</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                  {stats.recentEvents.slice(0, 6).map((event) => (
-                    <EventCard key={event.id} event={event} />
-                  ))}
-                </div>
-              </div>
-            )}
+        {/* Simple Stats Display */}
+        {showStats && (
+          <div style={{ 
+            background: 'rgba(255,255,255,0.1)', 
+            borderRadius: '1rem', 
+            padding: '2rem',
+            marginBottom: '2rem'
+          }}>
+            <h2 style={{ marginBottom: '1rem', fontSize: '1.5rem' }}>📈 Platform Stats Loaded!</h2>
+            <p style={{ opacity: 0.9 }}>Statistics are available via the dashboard API</p>
+            <Link 
+              href="/admin/sources" 
+              style={{
+                display: 'inline-block',
+                marginTop: '1rem',
+                background: 'rgba(255,255,255,0.2)',
+                color: 'white',
+                padding: '0.75rem 1.5rem',
+                borderRadius: '0.5rem',
+                textDecoration: 'none'
+              }}
+            >
+              ➕ Manage Event Sources
+            </Link>
           </div>
         )}
 
-        {/* Simple call-to-action for when no data is loaded */}
-        {!showingData && (
-          <div className="text-center py-12">
-            <div className="max-w-md mx-auto">
-              <MapPin className="w-16 h-16 text-blue-500 mx-auto mb-4" />
-              <h2 className="text-2xl font-bold text-gray-900 mb-4">Ready to Explore?</h2>
-              <p className="text-gray-600 mb-6">
-                Discover amazing local events happening in Madison right now.
-              </p>
-              <Link 
-                href="/events" 
-                className="inline-flex items-center bg-blue-600 text-white px-8 py-3 rounded-lg font-medium hover:bg-blue-700 transition-colors"
-              >
-                <Search className="w-5 h-5 mr-2" />
-                Start Exploring Events
-              </Link>
-            </div>
-          </div>
-        )}
+        {/* Call to Action */}
+        <div style={{ 
+          background: 'rgba(255,255,255,0.1)', 
+          borderRadius: '1rem', 
+          padding: '2rem',
+          marginTop: '2rem'
+        }}>
+          <h2 style={{ marginBottom: '1rem', fontSize: '1.5rem' }}>🎉 Ready to Explore?</h2>
+          <p style={{ marginBottom: '1.5rem', opacity: 0.9, lineHeight: 1.6 }}>
+            Discover amazing local events happening in Madison right now - completely privacy-focused and Facebook-free.
+          </p>
+          <Link 
+            href="/events" 
+            style={{
+              background: 'rgba(255,255,255,0.9)',
+              color: '#4f46e5',
+              padding: '1rem 2rem',
+              borderRadius: '0.75rem',
+              textDecoration: 'none',
+              fontWeight: '600',
+              fontSize: '1.1rem',
+              display: 'inline-block'
+            }}
+          >
+            🚀 Start Exploring Events
+          </Link>
+        </div>
 
         {/* Footer */}
-        <div className="text-center pt-12 text-gray-500">
-          <p>Privacy-focused event discovery for Madison, WI • No Facebook tracking</p>
+        <div style={{ marginTop: '3rem', opacity: 0.8, fontSize: '0.9rem' }}>
+          <p>Privacy-focused event discovery for Madison, WI</p>
+          <p style={{ marginTop: '0.5rem', fontSize: '0.8rem' }}>No Facebook tracking • Community-driven</p>
         </div>
+
       </main>
     </div>
   );
-});
+}
