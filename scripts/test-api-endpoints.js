@@ -12,9 +12,19 @@
  * Example: node scripts/test-api-endpoints.js http://localhost:5000
  */
 
-const fetch = require('node-fetch');
 const fs = require('fs');
 const path = require('path');
+
+// Use built-in fetch or fallback to node-fetch
+let fetch;
+const initFetch = async () => {
+  if (globalThis.fetch) {
+    fetch = globalThis.fetch;
+  } else {
+    const nodeFetch = await import('node-fetch');
+    fetch = nodeFetch.default;
+  }
+};
 
 // Configuration
 const baseURL = process.argv[2] || process.env.BASE_URL || 'http://localhost:5000';
@@ -89,6 +99,9 @@ async function makeRequest(endpoint, options = {}) {
 }
 
 async function testAPIEndpoints() {
+  // Initialize fetch first
+  await initFetch();
+  
   console.log(`🧪 Starting API Endpoint Tests on ${baseURL}`);
   console.log('=' .repeat(60));
   

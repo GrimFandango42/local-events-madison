@@ -1,0 +1,124 @@
+{
+  "timestamp": "2025-09-08T17:43:40.273Z",
+  "summary": {
+    "venuesCreated": 10,
+    "eventsCreated": 10,
+    "errorsCount": 0,
+    "requestedEventCount": 10
+  },
+  "venues": [
+    {
+      "id": "cmfbeuo560000vze9zlavudvx",
+      "name": "The Majestic Theatre",
+      "neighborhood": "Downtown"
+    },
+    {
+      "id": "cmfbeuoa90001vze985s7m411",
+      "name": "Memorial Union Terrace",
+      "neighborhood": "Campus Area"
+    },
+    {
+      "id": "cmfbeuoe60002vze98x9uwbfu",
+      "name": "High Noon Saloon",
+      "neighborhood": "East Side"
+    },
+    {
+      "id": "cmfbeuogv0003vze9quke577j",
+      "name": "Overture Center",
+      "neighborhood": "Downtown"
+    },
+    {
+      "id": "cmfbeuojk0004vze9wrwiis7j",
+      "name": "Crystal Corner Bar",
+      "neighborhood": "Willy Street"
+    },
+    {
+      "id": "cmfbeuom90005vze9dsmv1krz",
+      "name": "Wilson Park",
+      "neighborhood": "South Side"
+    },
+    {
+      "id": "cmfbeuopx0006vze9rlvq1c23",
+      "name": "Colectivo Coffee",
+      "neighborhood": "Northside"
+    },
+    {
+      "id": "cmfbeuosi0007vze9c57le87b",
+      "name": "The Sylvee",
+      "neighborhood": "Downtown"
+    },
+    {
+      "id": "cmfbeuouy0008vze9z3wn6fp2",
+      "name": "Comedy Club on State",
+      "neighborhood": "Downtown"
+    },
+    {
+      "id": "cmfbeuoxh0009vze9jid6pbm6",
+      "name": "Madison Museum of Contemporary Art",
+      "neighborhood": "Downtown"
+    }
+  ],
+  "events": [
+    {
+      "id": "cmfbeuoys000bvze9fuyb7y0f",
+      "title": "Art Gallery Opening at Wilson Park",
+      "category": "culture",
+      "startDateTime": "2025-09-14T13:00:00.000Z"
+    },
+    {
+      "id": "cmfbeup1f000dvze9adacioye",
+      "title": "Trivia Night - Downtown",
+      "category": "nightlife",
+      "startDateTime": "2025-09-26T16:00:00.000Z"
+    },
+    {
+      "id": "cmfbeup2o000fvze92oh4llj6",
+      "title": "Special Cooking Class: Italian Pasta",
+      "category": "food",
+      "startDateTime": "2025-10-04T13:00:00.000Z"
+    },
+    {
+      "id": "cmfbeup3x000hvze9fsedzyur",
+      "title": "Community Volunteer Day at High Noon Saloon",
+      "category": "community",
+      "startDateTime": "2025-09-22T14:00:00.000Z"
+    },
+    {
+      "id": "cmfbeup55000jvze92xsb9cy1",
+      "title": "Craft Beer Tasting at Crystal Corner Bar",
+      "category": "food",
+      "startDateTime": "2025-09-16T15:00:00.000Z"
+    },
+    {
+      "id": "cmfbeup6e000lvze94f4whsf2",
+      "title": "Open Mic Night at Memorial Union Terrace",
+      "category": "music",
+      "startDateTime": "2025-09-18T19:00:00.000Z"
+    },
+    {
+      "id": "cmfbeup7o000nvze95ewb5yvb",
+      "title": "Historical Walking Tour",
+      "category": "culture",
+      "startDateTime": "2025-09-21T20:00:00.000Z"
+    },
+    {
+      "id": "cmfbeup8x000pvze98wu0rpg6",
+      "title": "Community Volunteer Day at Overture Center",
+      "category": "community",
+      "startDateTime": "2025-10-07T11:00:00.000Z"
+    },
+    {
+      "id": "cmfbeupa6000rvze9e1o83tfk",
+      "title": "Indie Rock Showcase",
+      "category": "music",
+      "startDateTime": "2025-10-07T17:00:00.000Z"
+    },
+    {
+      "id": "cmfbeupbe000tvze9s2atw0j3",
+      "title": "Trivia Night",
+      "category": "nightlife",
+      "startDateTime": "2025-10-04T11:00:00.000Z"
+    }
+  ],
+  "errors": []
+}

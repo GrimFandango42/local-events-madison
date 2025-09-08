@@ -1,0 +1,192 @@
+{
+  "timestamp": "2025-09-08T17:43:56.988Z",
+  "config": {
+    "baseURL": "http://localhost:5000",
+    "concurrentUsers": 2,
+    "durationSeconds": 5
+  },
+  "results": {
+    "concurrent": {
+      "userResults": [
+        {
+          "requests": 15,
+          "successful": 15,
+          "failed": 0,
+          "responseTimes": [
+            449,
+            26,
+            18,
+            52,
+            29,
+            13,
+            12,
+            44,
+            20,
+            54,
+            12,
+            12,
+            22,
+            14,
+            18
+          ]
+        },
+        {
+          "requests": 11,
+          "successful": 11,
+          "failed": 0,
+          "responseTimes": [
+            524,
+            204,
+            33,
+            17,
+            12,
+            32,
+            23,
+            477,
+            24,
+            12,
+            14
+          ]
+        }
+      ],
+      "metrics": {
+        "requests": {
+          "total": 26,
+          "successful": 26,
+          "failed": 0,
+          "timeouts": 0
+        },
+        "responseTimes": [
+          449,
+          524,
+          26,
+          204,
+          18,
+          52,
+          33,
+          29,
+          17,
+          13,
+          12,
+          12,
+          32,
+          23,
+          44,
+          20,
+          54,
+          12,
+          477,
+          12,
+          24,
+          22,
+          12,
+          14,
+          14,
+          18
+        ],
+        "errors": [],
+        "endpoints": {
+          "/api/events?limit=5": {
+            "requests": 11,
+            "successful": 11,
+            "failed": 0,
+            "responseTimes": [
+              449,
+              18,
+              29,
+              17,
+              12,
+              32,
+              54,
+              12,
+              12,
+              24,
+              14
+            ]
+          },
+          "/api/events": {
+            "requests": 11,
+            "successful": 11,
+            "failed": 0,
+            "responseTimes": [
+              524,
+              26,
+              52,
+              33,
+              13,
+              23,
+              44,
+              20,
+              22,
+              14,
+              18
+            ]
+          },
+          "/api/events?category=music": {
+            "requests": 2,
+            "successful": 2,
+            "failed": 0,
+            "responseTimes": [
+              204,
+              12
+            ]
+          },
+          "/api/dashboard": {
+            "requests": 2,
+            "successful": 2,
+            "failed": 0,
+            "responseTimes": [
+              477,
+              12
+            ]
+          }
+        },
+        "startTime": "2025-09-08T17:43:50.833Z",
+        "endTime": "2025-09-08T17:43:56.014Z"
+      }
+    },
+    "basicAPI": {
+      "Dashboard": {
+        "average": 14,
+        "min": 9,
+        "max": 22,
+        "errorRate": 0,
+        "status": "good"
+      },
+      "Events (page 1)": {
+        "average": 10,
+        "min": 9,
+        "max": 11,
+        "errorRate": 0,
+        "status": "good"
+      },
+      "Events (search)": {
+        "average": 48,
+        "min": 10,
+        "max": 190,
+        "errorRate": 0,
+        "status": "good"
+      },
+      "Health Check": {
+        "average": 70,
+        "min": 55,
+        "max": 98,
+        "errorRate": 0,
+        "status": "good"
+      },
+      "Events (filter)": {
+        "average": 52,
+        "min": 13,
+        "max": 200,
+        "errorRate": 0,
+        "status": "good"
+      }
+    }
+  },
+  "summary": {
+    "totalRequests": 26,
+    "successRate": 100,
+    "avgResponseTime": 83,
+    "requestsPerSecond": 5
+  }
+}

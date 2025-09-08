@@ -13,9 +13,19 @@
  * Example: node scripts/performance-test.js http://localhost:5000 --concurrent=10 --duration=30
  */
 
-const fetch = require('node-fetch');
 const fs = require('fs');
 const path = require('path');
+
+// Use built-in fetch or fallback to node-fetch
+let fetch;
+const initFetch = async () => {
+  if (globalThis.fetch) {
+    fetch = globalThis.fetch;
+  } else {
+    const nodeFetch = await import('node-fetch');
+    fetch = nodeFetch.default;
+  }
+};
 
 // Configuration from command line args
 const baseURL = process.argv[2] || process.env.BASE_URL || 'http://localhost:5000';
@@ -59,6 +69,9 @@ let metrics = {
 };
 
 async function runPerformanceTests() {
+  // Initialize fetch first
+  await initFetch();
+  
   log(colors.blue, `⚡ Starting Enhanced Performance Test on ${baseURL}`);
   log(colors.yellow, `👥 Concurrent Users: ${concurrentUsers}`);
   log(colors.yellow, `⏱️  Duration: ${durationSeconds} seconds`);
@@ -502,6 +515,7 @@ function generateReport(results) {
 
 // Utility function to check if server is running
 async function checkServer() {
+  await initFetch();
   try {
     const response = await fetch(`${baseURL}/api/health`);
     return response.ok;
