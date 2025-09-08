@@ -2,10 +2,21 @@
 import { z } from 'zod';
 
 // Event filters validation schema
+const DateLikeString = z
+  .string()
+  .min(1)
+  .refine((v) => {
+    // Accept YYYY-MM-DD or full ISO datetime
+    const basic = /^\d{4}-\d{2}-\d{2}$/;
+    const isoish = /^\d{4}-\d{2}-\d{2}(T|\s).+$/;
+    return basic.test(v) || isoish.test(v);
+  }, 'Invalid date format')
+  .optional();
+
 export const EventFiltersSchema = z.object({
   category: z.array(z.string()).optional(),
-  dateFrom: z.string().datetime().optional(),
-  dateTo: z.string().datetime().optional(),
+  dateFrom: DateLikeString,
+  dateTo: DateLikeString,
   venueId: z.string().cuid().optional(),
   tags: z.array(z.string().min(1).max(50)).optional(),
   priceMax: z.number().positive().max(10000).optional(),
@@ -109,7 +120,16 @@ export const validateObjectId = (id: string): boolean => {
 };
 
 export const validateUrl = (url: string): boolean => {
-  return z.string().url().safeParse(url).success;
+  try {
+    const u = new URL(url);
+    // Only allow http/https schemes
+    if (u.protocol !== 'http:' && u.protocol !== 'https:') return false;
+    // Require a hostname (allows localhost)
+    if (!u.hostname) return false;
+    return true;
+  } catch {
+    return false;
+  }
 };
 
 // Request validation middleware type

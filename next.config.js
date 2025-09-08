@@ -5,9 +5,6 @@ const nextConfig = {
     optimizeCss: true,
   },
   eslint: {
-    ignoreDuringBuilds: true,
-  },
-  eslint: {
     // Skip ESLint during production builds to unblock deploys
     ignoreDuringBuilds: true,
   },
@@ -18,6 +15,8 @@ const nextConfig = {
   
   // Image optimization with better defaults
   images: {
+    // In dev, avoid optimization (and domain restrictions) for convenience
+    unoptimized: process.env.NODE_ENV !== 'production',
     domains: [
       'localhost',
       'thesylvee.com',
@@ -25,6 +24,7 @@ const nextConfig = {
       'greatdanepub.com',
       'visitmadison.com',
       'isthmus.com',
+      'example.com',
       // Add other venue domains as needed
     ],
     formats: ['image/avif', 'image/webp'],
@@ -69,15 +69,24 @@ const nextConfig = {
     return config;
   },
   async headers() {
-    // CSP tuned for Next.js dev/prod. We allow 'unsafe-inline' to avoid hydration failures,
-    // and enable ws:/blob: for HMR and workers. Tighten later with nonces if needed.
     const dev = process.env.NODE_ENV !== 'production';
-    const scriptSrc = dev
-      ? "script-src 'self' 'unsafe-eval' 'unsafe-inline' blob:"
-      : "script-src 'self' 'unsafe-eval' 'unsafe-inline' blob:";
-    const connectSrc = dev
-      ? "connect-src 'self' https://api.anthropic.com ws:"
-      : "connect-src 'self' https://api.anthropic.com";
+
+    if (dev) {
+      // In development, minimize headers to avoid breaking HMR and static asset serving
+      return [
+        {
+          source: '/api/(.*)',
+          headers: [
+            { key: 'Cache-Control', value: 'no-store, max-age=0' },
+            { key: 'X-Robots-Tag', value: 'noindex, nofollow' },
+          ],
+        },
+      ];
+    }
+
+    // Production security headers
+    const scriptSrc = "script-src 'self' 'unsafe-eval' 'unsafe-inline' blob:";
+    const connectSrc = "connect-src 'self' https://api.anthropic.com";
     const workerSrc = "worker-src 'self' blob:";
 
     const csp = [
@@ -91,9 +100,9 @@ const nextConfig = {
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",
-      "frame-ancestors 'none'"
+      "frame-ancestors 'none'",
     ].join('; ');
-    
+
     return [
       {
         source: '/(.*)',
@@ -105,12 +114,12 @@ const nextConfig = {
           { key: 'X-XSS-Protection', value: '1; mode=block' },
           { key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains; preload' },
           { key: 'Permissions-Policy', value: 'geolocation=(), microphone=(), camera=(), payment=(), usb=(), bluetooth=()' },
-          { key: 'Cross-Origin-Embedder-Policy', value: 'require-corp' },
-          { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
+          // COOP/COEP can break third-party and HMR; enable later if needed with care
+          // { key: 'Cross-Origin-Embedder-Policy', value: 'require-corp' },
+          // { key: 'Cross-Origin-Opener-Policy', value: 'same-origin' },
         ],
       },
       {
-        // API routes get additional security headers
         source: '/api/(.*)',
         headers: [
           { key: 'Cache-Control', value: 'no-store, max-age=0' },

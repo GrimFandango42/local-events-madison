@@ -1,6 +1,6 @@
 // MCPEventCollector.ts - Core event collection service using MCP Playwright
 import { EventEmitter } from 'events';
-import { PrismaClient } from '@prisma/client';
+import { prisma } from '@/lib/db';
 import { EventDateParser } from '../../lib/dateParser';
 import { normalizeUrl } from '../../lib/url';
 
@@ -46,13 +46,11 @@ interface Event {
 }
 
 export class MCPEventCollector extends EventEmitter {
-  private prisma: PrismaClient;
   private isRunning: boolean = false;
   private activeCollections: Set<string> = new Set();
 
   constructor() {
     super();
-    this.prisma = new PrismaClient();
   }
 
   async initialize() {
@@ -545,7 +543,7 @@ export class MCPEventCollector extends EventEmitter {
       const now = new Date();
       const fourHoursAgo = new Date(now.getTime() - 4 * 60 * 60 * 1000);
 
-      const sources = await this.prisma.eventSource.findMany({
+        const sources = await prisma.eventSource.findMany({
         where: {
           isActive: true,
           OR: [
@@ -609,7 +607,7 @@ export class MCPEventCollector extends EventEmitter {
     for (const eventData of events) {
       try {
         // Check for existing event (deduplication)
-        const existingEvent = await this.prisma.event.findFirst({
+        const existingEvent = await prisma.event.findFirst({
           where: {
             title: eventData.title,
             startDateTime: eventData.startDateTime,
@@ -626,7 +624,7 @@ export class MCPEventCollector extends EventEmitter {
         }
 
         // Create new event
-        await this.prisma.event.create({
+        await prisma.event.create({
           data: {
             title: eventData.title,
             description: eventData.description,
@@ -654,7 +652,7 @@ export class MCPEventCollector extends EventEmitter {
 
   private async updateSourceStats(sourceId: string, success: boolean): Promise<void> {
     try {
-      const source = await this.prisma.eventSource.findUnique({
+      const source = await prisma.eventSource.findUnique({
         where: { id: sourceId }
       });
 
@@ -664,7 +662,7 @@ export class MCPEventCollector extends EventEmitter {
       const successfulAttempts = (source.successfulAttempts || 0) + (success ? 1 : 0);
       const successRate = totalAttempts > 0 ? (successfulAttempts / totalAttempts) * 100 : 0;
 
-      await this.prisma.eventSource.update({
+      await prisma.eventSource.update({
         where: { id: sourceId },
         data: {
           lastScrapedAt: new Date(),
@@ -681,7 +679,7 @@ export class MCPEventCollector extends EventEmitter {
 
   private async startScrapingLog(source: EventSource): Promise<string> {
     try {
-      const log = await this.prisma.scrapingLog.create({
+      const log = await prisma.scrapingLog.create({
         data: {
           sourceId: source.id,
           startedAt: new Date(),
@@ -697,7 +695,7 @@ export class MCPEventCollector extends EventEmitter {
 
   private async completeScrapingLog(logId: string, result: ScrapingResult): Promise<void> {
     try {
-      await this.prisma.scrapingLog.update({
+      await prisma.scrapingLog.update({
         where: { id: logId },
         data: {
           completedAt: new Date(),
@@ -714,7 +712,7 @@ export class MCPEventCollector extends EventEmitter {
 
   private async logScrapingError(sourceId: string, error: any): Promise<void> {
     try {
-      await this.prisma.scrapingLog.create({
+      await prisma.scrapingLog.create({
         data: {
           sourceId,
           startedAt: new Date(),
@@ -750,7 +748,7 @@ export class MCPEventCollector extends EventEmitter {
 
   async destroy() {
     await this.stop();
-    await this.prisma.$disconnect();
+    await prisma.$disconnect();
   }
 }
 

@@ -8,12 +8,12 @@ const execAsync = promisify(exec);
 async function globalSetup(config: FullConfig) {
   console.log('🎭 Setting up Playwright test environment...');
   
-  // Setup test database
+  // Setup database (robust on Windows: skip generate, push schema, then seed)
   try {
     console.log('Setting up test database...');
-    await execAsync('npm run db:generate');
-    await execAsync('DATABASE_URL="file:./test-e2e.db" npm run db:push');
-    await execAsync('DATABASE_URL="file:./test-e2e.db" npm run db:seed');
+    // Use skip-generate to avoid Windows EPERM client engine rename
+    await execAsync('npx prisma db push --skip-generate');
+    await execAsync('node scripts/create-sample-data.js');
     console.log('✅ Test database ready');
   } catch (error) {
     console.error('❌ Failed to setup test database:', error);

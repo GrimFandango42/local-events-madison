@@ -5,14 +5,18 @@ const globalForPrisma = globalThis as unknown as {
   prisma: PrismaClient | undefined;
 };
 
+// Allow tests to inject a shared Prisma instance
+const injectedTestPrisma = (globalThis as any).__TEST_PRISMA__ as PrismaClient | undefined;
+
 export const prisma =
+  injectedTestPrisma ??
   globalForPrisma.prisma ??
   new PrismaClient({
     log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
     errorFormat: 'pretty',
     datasources: {
       db: {
-        url: process.env.DATABASE_URL,
+        url: process.env.TEST_DATABASE_URL || process.env.DATABASE_URL,
       },
     },
   });

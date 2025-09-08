@@ -24,12 +24,16 @@ function run(cmd, opts = {}) {
 }
 
 async function portIsFree(port) {
-  return new Promise((resolve) => {
+  // Check IPv4 and IPv6 to avoid false positives on Windows
+  const check = (host) => new Promise((resolve) => {
     const server = net.createServer()
       .once('error', () => resolve(false))
       .once('listening', () => server.close(() => resolve(true)))
-      .listen(port, '127.0.0.1');
+      .listen(port, host);
   });
+  const v4 = await check('127.0.0.1');
+  const v6 = await check('::');
+  return v4 && v6;
 }
 
 async function getFreePort(start = 3000, limit = 20) {
@@ -90,46 +94,21 @@ async function main() {
     ok('.env.local present');
   }
 
-  // 4) Prisma generate + push
+  // 4) Prisma DB sync (robust on Windows)
   try {
-    run('npm run db:generate');
-  } catch (e) {
-    const msg = String(e && e.message || e);
-    if (/EPERM: operation not permitted, rename[\s\S]*\.prisma[\\/]client[\\/]query_engine-windows\.dll\.node/i.test(msg)) {
-      warn('Prisma engine file locked. Attempting auto-repair...');
-      const clientDir = path.join(root, 'node_modules', '.prisma', 'client');
-      const enginesDir = path.join(root, 'node_modules', '@prisma', 'engines');
-      try {
-        // Best-effort cleanup of locked engine files and directories
-        if (fs.existsSync(clientDir)) {
-          try { fs.chmodSync(clientDir, 0o700); } catch {}
-          fs.rmSync(clientDir, { recursive: true, force: true });
-        }
-        if (fs.existsSync(enginesDir)) {
-          try { fs.chmodSync(enginesDir, 0o700); } catch {}
-          fs.rmSync(enginesDir, { recursive: true, force: true });
-        }
-      } catch (cleanupErr) {
-        warn(`Cleanup warning: ${cleanupErr.message || cleanupErr}`);
-      }
-
-      // Retry generate after cleanup
-      try {
-        run('npm run db:generate');
-        ok('Prisma generate repaired');
-      } catch (retryErr) {
-        warn('Prisma generate still failing. Make sure no dev servers are running.');
-        warn('Tip: close any Node/Next terminals, then press Enter to retry.');
-        process.stdin.setRawMode && process.stdin.setRawMode(true);
-        process.stdout.write('\nPress Enter to retry...');
-        await new Promise((res) => process.stdin.once('data', () => res(null)));
-        run('npm run db:generate');
-      }
-    } else {
-      throw e;
+    // Try to generate; if it fails (commonly EPERM on Windows), continue with existing client
+    try {
+      run('npm run db:generate');
+    } catch (e) {
+      const msg = String((e && e.message) || e);
+      warn('Prisma generate failed, continuing with existing client...');
+      if (/EPERM/i.test(msg)) warn('Detected Windows file lock (EPERM). Skipping client generate.');
     }
+    // Push schema without generating again to avoid engine rename
+    run('npx prisma db push --skip-generate');
+  } catch (e) {
+    warn('Database sync encountered an issue but may still be usable for dev.');
   }
-  run('npm run db:push');
 
   // 5) Seed sample data (best-effort)
   try {
@@ -140,11 +119,11 @@ async function main() {
 
   // 6) Start Next on a free port and open browser
   const port = await getFreePort(3000, 10);
-  const env = { ...process.env, PORT: String(port) };
   const url = `http://localhost:${port}`;
+  const env = { ...process.env, PORT: String(port), NEXTAUTH_URL: url };
 
   ok(`Starting Next.js on ${url}`);
-  const child = spawn(process.platform === 'win32' ? 'npm.cmd' : 'npm', ['run', 'dev'], { env, stdio: 'inherit' });
+  const child = spawn('npx', ['next', 'dev', '-p', String(port)], { env, stdio: 'inherit', shell: process.platform === 'win32' });
 
   // Give Next a moment to start, then open browser
   setTimeout(() => openBrowser(url), 2500);

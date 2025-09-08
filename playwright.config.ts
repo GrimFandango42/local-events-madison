@@ -1,6 +1,17 @@
 // Playwright E2E testing configuration (2025 best practices)
 import { defineConfig, devices } from '@playwright/test';
 
+// Centralize E2E base URL + port for reliability on Windows
+const E2E_BASE_URL = process.env.E2E_BASE_URL || 'http://localhost:3010';
+const E2E_PORT = (() => {
+  try {
+    const u = new URL(E2E_BASE_URL);
+    return String(u.port || (u.protocol === 'https:' ? 443 : 80));
+  } catch {
+    return '3010';
+  }
+})();
+
 /**
  * @see https://playwright.dev/docs/test-configuration
  */
@@ -23,7 +34,7 @@ export default defineConfig({
   /* Shared settings for all the projects below. See https://playwright.dev/docs/api/class-testoptions. */
   use: {
     /* Base URL to use in actions like `await page.goto('/')`. */
-    baseURL: 'http://localhost:3000',
+    baseURL: E2E_BASE_URL,
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
@@ -89,11 +100,13 @@ export default defineConfig({
   /* Run your local dev server before starting the tests */
   webServer: {
     command: 'npm run dev',
-    url: 'http://localhost:3000',
+    url: E2E_BASE_URL,
     reuseExistingServer: !process.env.CI,
     timeout: 120 * 1000,
     env: {
       NODE_ENV: 'test',
+      PORT: E2E_PORT,
+      NEXTAUTH_URL: E2E_BASE_URL,
     },
   },
 

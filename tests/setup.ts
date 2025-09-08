@@ -10,6 +10,9 @@ const prisma = new PrismaClient({
   }
 });
 
+// Expose this Prisma to application code under test
+;(global as any).__TEST_PRISMA__ = prisma;
+
 beforeAll(async () => {
   // Set up test database
   await prisma.$executeRaw`PRAGMA foreign_keys = ON`;
@@ -20,6 +23,16 @@ beforeAll(async () => {
     prisma.eventSource.deleteMany(),
     prisma.venue.deleteMany(),
     prisma.scrapingLog.deleteMany(),
+  ]);
+});
+
+// Ensure test isolation across tests
+beforeEach(async () => {
+  await prisma.$transaction([
+    prisma.event.deleteMany(),
+    prisma.scrapingLog.deleteMany(),
+    prisma.eventSource.deleteMany(),
+    prisma.venue.deleteMany(),
   ]);
 });
 
@@ -56,10 +69,13 @@ export const createTestEventSource = async (data: Partial<any> = {}) => {
   // Separate venue relation data from other data
   const { venue: _, ...otherData } = data;
   
+  // Ensure URL uniqueness across tests to satisfy unique constraint
+  const defaultUrl = `https://test-venue.com/events-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
   return await prisma.eventSource.create({
     data: {
       name: data.name || 'Test Event Source',
-      url: data.url || 'https://test-venue.com/events',
+      url: data.url || defaultUrl,
       sourceType: data.sourceType || 'venue',
       venue: {
         connect: {

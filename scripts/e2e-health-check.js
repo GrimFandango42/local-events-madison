@@ -19,10 +19,10 @@ const { chromium } = require('playwright');
     }
 
     // Wait for heading or loading text
-    await page.waitForSelector('h1:text("System Health"), text=Loading health.', { timeout: 15000 });
+    await page.getByRole('heading', { name: /System Health/i }).waitFor({ timeout: 15000 });
 
     // Wait for content after loading
-    await page.waitForSelector('text=Server', { timeout: 15000 });
+    await page.getByText('Server', { exact: false }).waitFor({ timeout: 15000 });
 
     const title = await page.textContent('h1');
     console.log('Title:', title?.trim());
@@ -35,13 +35,11 @@ const { chromium } = require('playwright');
 
     await page.screenshot({ path: 'tests/outputs/health-page.png', fullPage: true });
 
-    if (logs.length) {
-      console.log('Browser logs:', JSON.stringify(logs, null, 2));
-    } else {
-      console.log('No browser console errors.');
-    }
   } catch (e) {
     console.error('E2E error:', e && e.message || e);
+    if (logs.length) {
+      console.log('Browser logs:', JSON.stringify(logs, null, 2));
+    }
     process.exitCode = 1;
   } finally {
     await browser.close();
