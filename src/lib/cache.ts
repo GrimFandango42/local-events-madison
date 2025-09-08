@@ -92,6 +92,11 @@ class CacheManager {
   private redisClient: RedisClientType | null = null;
   private inMemoryCache = new InMemoryCache();
   private isRedisConnected = false;
+  private redisAvailable = true; // Flag to stop trying Redis if it's permanently unavailable
+  private connectionAttempts = 0;
+  private maxConnectionAttempts = 3;
+  private reconnectTimeout: NodeJS.Timeout | null = null;
+  private lastErrorLog = 0; // Timestamp of last error log to prevent spam
 
   constructor() {
     this.initRedis();
@@ -99,70 +104,134 @@ class CacheManager {
 
   private async initRedis() {
     if (!process.env.REDIS_URL) {
-      console.log('No REDIS_URL provided, using in-memory cache');
+      console.log('Cache: No REDIS_URL provided, using in-memory cache only');
+      this.redisAvailable = false;
+      return;
+    }
+
+    // Stop trying if we've exceeded max attempts
+    if (this.connectionAttempts >= this.maxConnectionAttempts) {
+      if (this.connectionAttempts === this.maxConnectionAttempts) {
+        console.log('Cache: Redis unavailable after max attempts, using in-memory cache only');
+        this.connectionAttempts++; // Increment to avoid logging this message repeatedly
+      }
+      this.redisAvailable = false;
       return;
     }
 
     try {
-      this.redisClient = createClient({ url: process.env.REDIS_URL });
+      this.connectionAttempts++;
+      this.redisClient = createClient({ 
+        url: process.env.REDIS_URL,
+        socket: {
+          connectTimeout: 2000 // 2 second timeout
+        }
+      });
 
       this.redisClient.on('connect', () => {
-        console.log('Redis connected');
+        console.log('Cache: Redis connected successfully');
         this.isRedisConnected = true;
+        this.connectionAttempts = 0; // Reset attempts on successful connection
       });
 
       this.redisClient.on('error', (err: any) => {
-        console.warn('Redis connection error, falling back to in-memory cache:', err?.message || err);
         this.isRedisConnected = false;
+        // Only log errors occasionally to avoid spam
+        const now = Date.now();
+        if (now - this.lastErrorLog > 30000) { // Log at most once per 30 seconds
+          console.log(`Cache: Redis error (attempt ${this.connectionAttempts}/${this.maxConnectionAttempts}):`, err?.code || 'Connection refused');
+          this.lastErrorLog = now;
+        }
+        this.scheduleReconnect();
       });
 
       this.redisClient.on('end', () => {
-        console.log('Redis connection ended');
         this.isRedisConnected = false;
+        this.scheduleReconnect();
       });
 
+      // Single connection attempt (fixing the duplicate connection calls)
       await this.redisClient.connect();
 
-      await this.redisClient.connect();
     } catch (error) {
-      console.warn('Failed to connect to Redis, using in-memory cache:', error);
       this.isRedisConnected = false;
+      const now = Date.now();
+      if (now - this.lastErrorLog > 30000) {
+        console.log(`Cache: Redis connection failed (attempt ${this.connectionAttempts}/${this.maxConnectionAttempts})`);
+        this.lastErrorLog = now;
+      }
+      this.scheduleReconnect();
     }
   }
 
+  private scheduleReconnect() {
+    if (this.reconnectTimeout || !this.redisAvailable || this.connectionAttempts >= this.maxConnectionAttempts) {
+      return;
+    }
+
+    // Exponential backoff: 1s, 4s, 9s
+    const delay = Math.pow(this.connectionAttempts, 2) * 1000;
+    
+    this.reconnectTimeout = setTimeout(() => {
+      this.reconnectTimeout = null;
+      this.initRedis();
+    }, delay);
+  }
+
   async get(key: string): Promise<any | null> {
-    try {
-      if (this.isRedisConnected && this.redisClient) {
+    // Skip Redis attempts if we know it's unavailable
+    if (this.redisAvailable && this.isRedisConnected && this.redisClient) {
+      try {
         const value = await this.redisClient.get(key);
         return value ? JSON.parse(value) : null;
+      } catch (error) {
+        // Only log occasional errors to avoid spam
+        const now = Date.now();
+        if (now - this.lastErrorLog > 30000) {
+          console.log('Cache: Redis get error, using in-memory cache');
+          this.lastErrorLog = now;
+        }
+        this.isRedisConnected = false;
       }
-    } catch (error) {
-      console.warn('Redis get error, falling back to in-memory:', error);
     }
 
     return this.inMemoryCache.get(key);
   }
 
   async set(key: string, value: any, ttlSeconds: number = 300): Promise<void> {
-    try {
-      if (this.isRedisConnected && this.redisClient) {
+    // Skip Redis attempts if we know it's unavailable
+    if (this.redisAvailable && this.isRedisConnected && this.redisClient) {
+      try {
         await this.redisClient.setEx(key, ttlSeconds, JSON.stringify(value));
+        // Also store in memory cache as backup
+        this.inMemoryCache.set(key, value, ttlSeconds);
         return;
+      } catch (error) {
+        const now = Date.now();
+        if (now - this.lastErrorLog > 30000) {
+          console.log('Cache: Redis set error, using in-memory cache');
+          this.lastErrorLog = now;
+        }
+        this.isRedisConnected = false;
       }
-    } catch (error) {
-      console.warn('Redis set error, falling back to in-memory:', error);
     }
 
     this.inMemoryCache.set(key, value, ttlSeconds);
   }
 
   async delete(key: string): Promise<void> {
-    try {
-      if (this.isRedisConnected && this.redisClient) {
+    // Skip Redis attempts if we know it's unavailable
+    if (this.redisAvailable && this.isRedisConnected && this.redisClient) {
+      try {
         await this.redisClient.del(key);
+      } catch (error) {
+        const now = Date.now();
+        if (now - this.lastErrorLog > 30000) {
+          console.log('Cache: Redis delete error');
+          this.lastErrorLog = now;
+        }
+        this.isRedisConnected = false;
       }
-    } catch (error) {
-      console.warn('Redis delete error:', error);
     }
 
     this.inMemoryCache.delete(key);

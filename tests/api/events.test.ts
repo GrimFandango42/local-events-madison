@@ -1,6 +1,6 @@
 // API route tests for events
 import { createMocks } from 'node-mocks-http';
-import handler from '@/app/api/events/route';
+import { GET, POST } from '../../src/app/api/events/route';
 import { prisma, createTestVenue, createTestEvent } from '../setup';
 
 describe('/api/events', () => {
@@ -24,7 +24,7 @@ describe('/api/events', () => {
         url: '/api/events'
       });
 
-      const response = await handler.GET(req as any);
+      const response = await GET(req as any);
       const data = await response.json();
 
       expect(response.status).toBe(200);
@@ -54,7 +54,7 @@ describe('/api/events', () => {
         url: '/api/events?category=music'
       });
 
-      const response = await handler.GET(req as any);
+      const response = await GET(req as any);
       const data = await response.json();
 
       expect(response.status).toBe(200);
@@ -85,7 +85,7 @@ describe('/api/events', () => {
         url: '/api/events?neighborhood=Downtown'
       });
 
-      const response = await handler.GET(req as any);
+      const response = await GET(req as any);
       const data = await response.json();
 
       expect(response.status).toBe(200);
@@ -112,7 +112,7 @@ describe('/api/events', () => {
         url: '/api/events?search=jazz'
       });
 
-      const response = await handler.GET(req as any);
+      const response = await GET(req as any);
       const data = await response.json();
 
       expect(response.status).toBe(200);
@@ -152,7 +152,7 @@ describe('/api/events', () => {
         url: `/api/events?dateFrom=${dateFrom}&dateTo=${dateTo}`
       });
 
-      const response = await handler.GET(req as any);
+      const response = await GET(req as any);
       const data = await response.json();
 
       expect(response.status).toBe(200);
@@ -180,7 +180,7 @@ describe('/api/events', () => {
         url: '/api/events?page=1&limit=5'
       });
 
-      const response1 = await handler.GET(req1 as any);
+      const response1 = await GET(req1 as any);
       const data1 = await response1.json();
 
       expect(data1.data).toHaveLength(5);
@@ -194,7 +194,7 @@ describe('/api/events', () => {
         url: '/api/events?page=2&limit=5'
       });
 
-      const response2 = await handler.GET(req2 as any);
+      const response2 = await GET(req2 as any);
       const data2 = await response2.json();
 
       expect(data2.data).toHaveLength(5);
@@ -219,7 +219,7 @@ describe('/api/events', () => {
         url: '/api/events'
       });
 
-      const response = await handler.GET(req as any);
+      const response = await GET(req as any);
       const data = await response.json();
 
       expect(data.data[0].venue).toBeDefined();
@@ -234,7 +234,7 @@ describe('/api/events', () => {
         url: '/api/events?page=invalid&limit=not-a-number'
       });
 
-      const response = await handler.GET(req as any);
+      const response = await GET(req as any);
       const data = await response.json();
 
       expect(response.status).toBe(200);
@@ -250,7 +250,7 @@ describe('/api/events', () => {
         url: '/api/events?category=nonexistent-category'
       });
 
-      const response = await handler.GET(req as any);
+      const response = await GET(req as any);
       const data = await response.json();
 
       expect(response.status).toBe(200);
@@ -271,7 +271,7 @@ describe('/api/events', () => {
         url: '/api/events'
       });
 
-      const response = await handler.GET(req as any);
+      const response = await GET(req as any);
       const data = await response.json();
 
       expect(response.status).toBe(500);
@@ -288,7 +288,7 @@ describe('/api/events', () => {
         url: '/api/events'
       });
 
-      const response = await handler.POST?.(req as any);
+      const response = await POST(req as any);
       expect(response?.status).toBe(405);
     });
   });
