@@ -125,30 +125,46 @@ export default memo(function HomePage() {
         {showingData && stats && (
           <div className="mb-8">
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-              <StatsCard
-                title="Total Events"
-                value={stats.totalEvents.toString()}
-                icon={<Calendar className="w-8 h-8 text-blue-600" />}
-                trend={`${stats.eventsLast7Days} this week`}
-              />
-              <StatsCard
-                title="Active Sources"
-                value={stats.activeSources.toString()}
-                icon={<Plus className="w-8 h-8 text-green-600" />}
-                trend={`${stats.totalSources} total`}
-              />
-              <StatsCard
-                title="Success Rate"
-                value={`${Math.round(stats.avgSuccessRate || 0)}%`}
-                icon={<BarChart3 className="w-8 h-8 text-purple-600" />}
-                trend="Average performance"
-              />
-              <StatsCard
-                title="Recent Events"
-                value={stats.recentEvents.length.toString()}
-                icon={<Clock className="w-8 h-8 text-orange-600" />}
-                trend="Last 7 days"
-              />
+              <div className="bg-white p-6 rounded-lg shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600">Total Events</p>
+                    <p className="text-2xl font-bold text-gray-900">{stats.totalEvents}</p>
+                    <p className="text-xs text-gray-500">{stats.eventsLast7Days} this week</p>
+                  </div>
+                  <Calendar className="w-8 h-8 text-blue-600" />
+                </div>
+              </div>
+              <div className="bg-white p-6 rounded-lg shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600">Active Sources</p>
+                    <p className="text-2xl font-bold text-gray-900">{stats.activeSources}</p>
+                    <p className="text-xs text-gray-500">{stats.totalSources} total</p>
+                  </div>
+                  <Plus className="w-8 h-8 text-green-600" />
+                </div>
+              </div>
+              <div className="bg-white p-6 rounded-lg shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600">Success Rate</p>
+                    <p className="text-2xl font-bold text-gray-900">{Math.round(stats.avgSuccessRate || 0)}%</p>
+                    <p className="text-xs text-gray-500">Average performance</p>
+                  </div>
+                  <BarChart3 className="w-8 h-8 text-purple-600" />
+                </div>
+              </div>
+              <div className="bg-white p-6 rounded-lg shadow-sm">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm text-gray-600">Recent Events</p>
+                    <p className="text-2xl font-bold text-gray-900">{stats.recentEvents.length}</p>
+                    <p className="text-xs text-gray-500">Last 7 days</p>
+                  </div>
+                  <Clock className="w-8 h-8 text-orange-600" />
+                </div>
+              </div>
             </div>
             
             {/* Recent events */}
