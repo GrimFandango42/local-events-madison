@@ -1,7 +1,7 @@
-// Mobile-optimized homepage - Lightweight for mobile devices
+// Homepage with mobile detection and redirect
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 
 // Simple, lightweight component without heavy dependencies
@@ -9,6 +9,16 @@ export default function HomePage() {
   const [showStats, setShowStats] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // Check if mobile and redirect to ultra-light version
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const isMobile = /Android|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+      if (isMobile) {
+        window.location.href = '/mobile-test.html';
+      }
+    }
+  }, []);
 
   const loadStats = async () => {
     setLoading(true);
