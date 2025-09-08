@@ -9,7 +9,7 @@
     "test": "tests"
   },
   "scripts": {
-    "dev": "next dev",
+    "dev": "next dev -p 5000 -H 0.0.0.0",
     "dev:oneclick": "node scripts/one-click-dev.js",
     "build": "next build",
     "start": "next start",
@@ -63,10 +63,7 @@
   "author": "Local Events Platform",
   "license": "MIT",
   "dependencies": {
-    "@mendable/firecrawl-js": "^4.3.3",
-    "@playwright/mcp": "^0.0.36",
     "@prisma/client": "^5.0.0",
-    "@rollup/rollup-win32-x64-msvc": "^4.50.1",
     "@types/node": "^20.0.0",
     "@types/node-fetch": "^2.6.13",
     "@types/react": "^18.0.0",
@@ -117,5 +114,9 @@
   },
   "engines": {
     "node": ">=18.0.0"
+  },
+  "optionalDependencies": {
+    "@mendable/firecrawl-js": "^4.3.3",
+    "@playwright/mcp": "^0.0.36"
   }
 }

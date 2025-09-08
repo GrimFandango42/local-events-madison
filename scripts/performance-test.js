@@ -1,13 +1,48 @@
 #!/usr/bin/env node
 
 /**
- * Performance Testing Script for Local Events
- * Tests API response times, database performance, and Core Web Vitals
+ * Enhanced Performance Testing Script for Local Events
+ * 
+ * Comprehensive load testing with:
+ * - Concurrent user simulation
+ * - Response time measurements  
+ * - Throughput analysis
+ * - Error rate monitoring
+ * 
+ * Usage: node scripts/performance-test.js [base-url] [--concurrent=N] [--duration=N]
+ * Example: node scripts/performance-test.js http://localhost:5000 --concurrent=10 --duration=30
  */
 
-const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
+
+// Use built-in fetch or fallback to node-fetch
+let fetch;
+const initFetch = async () => {
+  if (globalThis.fetch) {
+    fetch = globalThis.fetch;
+  } else {
+    const nodeFetch = await import('node-fetch');
+    fetch = nodeFetch.default;
+  }
+};
+
+// Configuration from command line args
+const baseURL = process.argv[2] || process.env.BASE_URL || 'http://localhost:5000';
+const outputDir = 'tests/outputs';
+
+// Parse command line arguments
+const args = process.argv.slice(2);
+const concurrentArg = args.find(arg => arg.startsWith('--concurrent='));
+const durationArg = args.find(arg => arg.startsWith('--duration='));
+
+const concurrentUsers = concurrentArg ? parseInt(concurrentArg.split('=')[1]) : 5;
+const durationSeconds = durationArg ? parseInt(durationArg.split('=')[1]) : 15;
+
+// Ensure output directory exists
+if (!fs.existsSync(outputDir)) {
+  fs.mkdirSync(outputDir, { recursive: true });
+}
 
 // Colors for console output
 const colors = {
@@ -23,25 +58,59 @@ function log(color, message) {
   console.log(`${color}${message}${colors.reset}`);
 }
 
+// Performance metrics tracking
+let metrics = {
+  requests: { total: 0, successful: 0, failed: 0, timeouts: 0 },
+  responseTimes: [],
+  errors: [],
+  endpoints: {},
+  startTime: null,
+  endTime: null
+};
+
 async function runPerformanceTests() {
-  log(colors.blue, '\n🚀 Running Performance Tests...\n');
+  // Initialize fetch first
+  await initFetch();
+  
+  log(colors.blue, `⚡ Starting Enhanced Performance Test on ${baseURL}`);
+  log(colors.yellow, `👥 Concurrent Users: ${concurrentUsers}`);
+  log(colors.yellow, `⏱️  Duration: ${durationSeconds} seconds`);
+  console.log('=' .repeat(60));
 
-  const results = {
-    api: {},
-    database: {},
-    webVitals: {},
-    lighthouse: {}
-  };
-
+  metrics.startTime = new Date();
+  const startTimestamp = Date.now();
+  
   try {
-    // Test API endpoints
-    results.api = await testAPIPerformance();
+    // Run concurrent user simulation
+    log(colors.green, '🚀 Starting concurrent user simulation...');
     
-    // Test database performance
-    results.database = await testDatabasePerformance();
+    const userPromises = [];
+    for (let i = 0; i < concurrentUsers; i++) {
+      userPromises.push(simulateUser(i + 1, durationSeconds * 1000));
+    }
     
-    // Generate report
-    generateReport(results);
+    // Monitor progress
+    const progressInterval = setInterval(() => {
+      const elapsed = Math.round((Date.now() - startTimestamp) / 1000);
+      const progress = Math.round((elapsed / durationSeconds) * 100);
+      log(colors.yellow, `📈 Progress: ${elapsed}/${durationSeconds}s (${progress}%) - Requests: ${metrics.requests.total}`);
+    }, 2000);
+    
+    // Wait for all users to complete
+    const userResults = await Promise.all(userPromises);
+    clearInterval(progressInterval);
+    
+    metrics.endTime = new Date();
+    
+    // Also run the original basic API tests for comparison
+    log(colors.green, '\n🔌 Running basic API performance tests...');
+    const basicAPIResults = await testAPIPerformance();
+    
+    // Generate comprehensive report
+    generateReport({ 
+      concurrent: { userResults, metrics },
+      basicAPI: basicAPIResults 
+    });
     
   } catch (error) {
     log(colors.red, `❌ Error running performance tests: ${error.message}`);
@@ -49,15 +118,140 @@ async function runPerformanceTests() {
   }
 }
 
+// Test endpoints with different loads for concurrent simulation
+const testEndpoints = [
+  { path: '/api/health', weight: 10 },
+  { path: '/api/events', weight: 50 },
+  { path: '/api/events?limit=5', weight: 30 },
+  { path: '/api/events?category=music', weight: 15 },
+  { path: '/api/dashboard', weight: 10 }
+];
+
+function getRandomEndpoint() {
+  // Weighted random selection
+  const totalWeight = testEndpoints.reduce((sum, ep) => sum + ep.weight, 0);
+  const random = Math.random() * totalWeight;
+  
+  let currentWeight = 0;
+  for (const endpoint of testEndpoints) {
+    currentWeight += endpoint.weight;
+    if (random <= currentWeight) {
+      return endpoint.path;
+    }
+  }
+  return testEndpoints[0].path; // Fallback
+}
+
+async function simulateUser(userId, durationMs) {
+  const userMetrics = {
+    requests: 0,
+    successful: 0,
+    failed: 0,
+    responseTimes: []
+  };
+  
+  const endTime = Date.now() + durationMs;
+  
+  while (Date.now() < endTime) {
+    const endpoint = getRandomEndpoint();
+    const result = await makeRequest(endpoint);
+    
+    // Update metrics
+    metrics.requests.total++;
+    userMetrics.requests++;
+    
+    if (result.success) {
+      metrics.requests.successful++;
+      userMetrics.successful++;
+    } else {
+      metrics.requests.failed++;
+      userMetrics.failed++;
+      
+      if (result.timeout) {
+        metrics.requests.timeouts++;
+      }
+      
+      metrics.errors.push({
+        endpoint: result.endpoint,
+        error: result.error,
+        timestamp: new Date().toISOString()
+      });
+    }
+    
+    metrics.responseTimes.push(result.responseTime);
+    userMetrics.responseTimes.push(result.responseTime);
+    
+    // Track per-endpoint metrics
+    if (!metrics.endpoints[result.endpoint]) {
+      metrics.endpoints[result.endpoint] = {
+        requests: 0,
+        successful: 0,
+        failed: 0,
+        responseTimes: []
+      };
+    }
+    
+    const endpointMetrics = metrics.endpoints[result.endpoint];
+    endpointMetrics.requests++;
+    endpointMetrics.responseTimes.push(result.responseTime);
+    
+    if (result.success) {
+      endpointMetrics.successful++;
+    } else {
+      endpointMetrics.failed++;
+    }
+    
+    // Small delay between requests (simulate real user behavior)
+    await new Promise(resolve => setTimeout(resolve, 100 + Math.random() * 400));
+  }
+  
+  return userMetrics;
+}
+
+async function makeRequest(endpoint, timeout = 5000) {
+  const startTime = Date.now();
+  
+  try {
+    const response = await fetch(`${baseURL}${endpoint}`, {
+      timeout,
+      headers: {
+        'User-Agent': 'PerformanceTest/1.0'
+      }
+    });
+    
+    const responseTime = Date.now() - startTime;
+    
+    // Try to read the response body to simulate real usage
+    await response.text();
+    
+    return {
+      success: true,
+      status: response.status,
+      responseTime,
+      endpoint
+    };
+  } catch (error) {
+    const responseTime = Date.now() - startTime;
+    
+    return {
+      success: false,
+      error: error.message,
+      responseTime,
+      endpoint,
+      timeout: error.type === 'request-timeout'
+    };
+  }
+}
+
 async function testAPIPerformance() {
-  log(colors.green, '🔌 Testing API Performance...');
+  log(colors.green, '🔌 Testing Basic API Performance...');
 
   const endpoints = [
-    { name: 'Dashboard', url: 'http://localhost:3001/api/dashboard' },
-    { name: 'Events (page 1)', url: 'http://localhost:3001/api/events?page=1&pageSize=12' },
-    { name: 'Events (search)', url: 'http://localhost:3001/api/events?search=music&page=1&pageSize=12' },
-    { name: 'Health Check', url: 'http://localhost:3001/api/health' },
-    { name: 'Neighborhoods', url: 'http://localhost:3001/api/neighborhoods' }
+    { name: 'Dashboard', url: `${baseURL}/api/dashboard` },
+    { name: 'Events (page 1)', url: `${baseURL}/api/events?page=1&pageSize=12` },
+    { name: 'Events (search)', url: `${baseURL}/api/events?search=music&page=1&pageSize=12` },
+    { name: 'Health Check', url: `${baseURL}/api/health` },
+    { name: 'Events (filter)', url: `${baseURL}/api/events?category=music,food` }
   ];
 
   const results = {};
@@ -173,58 +367,157 @@ async function testDatabasePerformance() {
   return results;
 }
 
+function calculateStats(values) {
+  if (values.length === 0) return { min: 0, max: 0, avg: 0, median: 0, p95: 0, p99: 0 };
+  
+  const sorted = [...values].sort((a, b) => a - b);
+  const len = sorted.length;
+  
+  return {
+    min: sorted[0],
+    max: sorted[len - 1],
+    avg: Math.round(values.reduce((a, b) => a + b) / len),
+    median: len % 2 === 0 ? (sorted[len/2 - 1] + sorted[len/2]) / 2 : sorted[Math.floor(len/2)],
+    p95: sorted[Math.floor(len * 0.95)],
+    p99: sorted[Math.floor(len * 0.99)]
+  };
+}
+
 function generateReport(results) {
-  log(colors.green, '\n📊 Performance Report Summary:\n');
+  console.log('\n' + '='.repeat(60));
+  log(colors.bold + colors.green, '📊 PERFORMANCE TEST RESULTS');
+  console.log('='.repeat(60));
 
-  // API Performance Summary
-  log(colors.bold + colors.blue, '🔌 API Performance:');
-  Object.entries(results.api).forEach(([name, data]) => {
-    const statusIcon = data.status === 'good' ? '✅' : data.status === 'okay' ? '⚠️' : '❌';
-    console.log(`  ${statusIcon} ${name}: ${data.average}ms average`);
-  });
+  // Concurrent testing results
+  if (results.concurrent && results.concurrent.metrics) {
+    const concurrentMetrics = results.concurrent.metrics;
+    const totalDurationMs = concurrentMetrics.endTime.getTime() - concurrentMetrics.startTime.getTime();
+    const responseTimeStats = calculateStats(concurrentMetrics.responseTimes);
+    const successRate = (concurrentMetrics.requests.successful / concurrentMetrics.requests.total) * 100;
+    const requestsPerSecond = concurrentMetrics.requests.total / (totalDurationMs / 1000);
+    
+    log(colors.bold + colors.blue, '\n🚀 Concurrent Load Test Results:');
+    console.log(`   ⏱️  Duration: ${Math.round(totalDurationMs / 1000)}s`);
+    console.log(`   👥 Concurrent Users: ${concurrentUsers}`);
+    console.log(`   📞 Total Requests: ${concurrentMetrics.requests.total}`);
+    console.log(`   ✅ Success Rate: ${Math.round(successRate)}%`);
+    console.log(`   🚀 Throughput: ${Math.round(requestsPerSecond)} req/s`);
+    console.log(`   ⚡ Avg Response: ${responseTimeStats.avg}ms`);
+    console.log(`   📈 95th Percentile: ${responseTimeStats.p95}ms`);
 
-  // Database Performance Summary
-  if (Object.keys(results.database).length > 0) {
-    log(colors.bold + colors.blue, '\n💾 Database Performance:');
-    Object.entries(results.database).forEach(([name, data]) => {
+    // Per-endpoint concurrent results
+    if (Object.keys(concurrentMetrics.endpoints).length > 0) {
+      log(colors.bold + colors.blue, '\n🎯 Concurrent Test - Per Endpoint:');
+      for (const [endpoint, stats] of Object.entries(concurrentMetrics.endpoints)) {
+        const endpointStats = calculateStats(stats.responseTimes);
+        const endpointSuccessRate = (stats.successful / stats.requests) * 100;
+        console.log(`   ${endpoint}:`);
+        console.log(`     Requests: ${stats.requests} (${Math.round(endpointSuccessRate)}% success)`);
+        console.log(`     Avg: ${endpointStats.avg}ms | 95th: ${endpointStats.p95}ms`);
+      }
+    }
+  }
+
+  // Basic API performance results
+  if (results.basicAPI && Object.keys(results.basicAPI).length > 0) {
+    log(colors.bold + colors.blue, '\n🔌 Basic API Performance:');
+    Object.entries(results.basicAPI).forEach(([name, data]) => {
       const statusIcon = data.status === 'good' ? '✅' : data.status === 'okay' ? '⚠️' : '❌';
-      console.log(`  ${statusIcon} ${name}: ${data.averageTime}ms average`);
+      console.log(`   ${statusIcon} ${name}: ${data.average}ms avg (${data.min}-${data.max}ms)`);
     });
   }
 
-  // Overall recommendations
-  log(colors.green, '\n💡 Recommendations:');
-  
-  const apiIssues = Object.values(results.api).filter(r => r.status !== 'good');
-  const dbIssues = Object.values(results.database).filter(r => r.status !== 'good');
-  
-  if (apiIssues.length === 0 && dbIssues.length === 0) {
-    log(colors.green, '  🎉 All performance metrics are looking good!');
-  } else {
-    if (apiIssues.length > 0) {
-      console.log('  • Consider implementing more aggressive caching for slower API endpoints');
-      console.log('  • Review database query optimization for endpoints with high response times');
+  // Performance Assessment
+  if (results.concurrent && results.concurrent.metrics) {
+    const concurrentMetrics = results.concurrent.metrics;
+    const successRate = (concurrentMetrics.requests.successful / concurrentMetrics.requests.total) * 100;
+    const responseTimeStats = calculateStats(concurrentMetrics.responseTimes);
+    const requestsPerSecond = concurrentMetrics.requests.total / ((concurrentMetrics.endTime.getTime() - concurrentMetrics.startTime.getTime()) / 1000);
+    
+    log(colors.bold + colors.green, '\n🎯 Performance Assessment:');
+    
+    if (successRate >= 99) {
+      log(colors.green, '   ✅ Excellent reliability (99%+ success rate)');
+    } else if (successRate >= 95) {
+      log(colors.yellow, '   ⚠️  Good reliability (95%+ success rate)');
+    } else {
+      log(colors.red, '   ❌ Poor reliability (<95% success rate)');
     }
-    if (dbIssues.length > 0) {
-      console.log('  • Add database indexes for commonly filtered/searched fields');
-      console.log('  • Consider implementing database query result caching');
+    
+    if (responseTimeStats.avg < 200) {
+      log(colors.green, '   ✅ Excellent response times (<200ms avg)');
+    } else if (responseTimeStats.avg < 500) {
+      log(colors.yellow, '   ⚠️  Good response times (<500ms avg)');
+    } else {
+      log(colors.red, '   ❌ Slow response times (>500ms avg)');
+    }
+    
+    if (requestsPerSecond > 50) {
+      log(colors.green, '   ✅ High throughput (>50 req/s)');
+    } else if (requestsPerSecond > 20) {
+      log(colors.yellow, '   ⚠️  Good throughput (>20 req/s)');  
+    } else {
+      log(colors.red, '   ❌ Low throughput (<20 req/s)');
+    }
+
+    // Show top errors if any
+    if (concurrentMetrics.errors.length > 0) {
+      log(colors.yellow, '\n⚠️  Top Errors:');
+      const errorCounts = {};
+      concurrentMetrics.errors.forEach(error => {
+        const key = `${error.endpoint}: ${error.error}`;
+        errorCounts[key] = (errorCounts[key] || 0) + 1;
+      });
+      
+      Object.entries(errorCounts)
+        .sort(([,a], [,b]) => b - a)
+        .slice(0, 3)
+        .forEach(([error, count]) => {
+          console.log(`     ${count}x - ${error}`);
+        });
     }
   }
 
-  // Save results to file
-  const reportPath = path.join(process.cwd(), 'performance-report.json');
-  fs.writeFileSync(reportPath, JSON.stringify({
+  // Save comprehensive report
+  const reportPath = path.join(outputDir, 'performance-test-report.json');
+  const reportData = {
     timestamp: new Date().toISOString(),
+    config: { baseURL, concurrentUsers, durationSeconds },
     results
-  }, null, 2));
+  };
   
+  if (results.concurrent && results.concurrent.metrics) {
+    const concurrentMetrics = results.concurrent.metrics;
+    reportData.summary = {
+      totalRequests: concurrentMetrics.requests.total,
+      successRate: Math.round((concurrentMetrics.requests.successful / concurrentMetrics.requests.total) * 100),
+      avgResponseTime: calculateStats(concurrentMetrics.responseTimes).avg,
+      requestsPerSecond: Math.round(concurrentMetrics.requests.total / ((concurrentMetrics.endTime.getTime() - concurrentMetrics.startTime.getTime()) / 1000))
+    };
+  }
+  
+  fs.writeFileSync(reportPath, JSON.stringify(reportData, null, 2));
   log(colors.blue, `\n📄 Detailed report saved to: ${reportPath}`);
+  
+  // Determine exit code
+  if (results.concurrent && results.concurrent.metrics) {
+    const successRate = (results.concurrent.metrics.requests.successful / results.concurrent.metrics.requests.total) * 100;
+    const avgResponseTime = calculateStats(results.concurrent.metrics.responseTimes).avg;
+    
+    if (successRate < 90 || avgResponseTime > 1000) {
+      log(colors.red, '\n❌ Performance test indicates issues. Check the details above.');
+      process.exit(1);
+    } else {
+      log(colors.green, '\n🎉 Performance test completed successfully!');
+    }
+  }
 }
 
 // Utility function to check if server is running
 async function checkServer() {
+  await initFetch();
   try {
-    const response = await fetch('http://localhost:3001/api/health');
+    const response = await fetch(`${baseURL}/api/health`);
     return response.ok;
   } catch (error) {
     return false;
@@ -238,7 +531,7 @@ if (require.main === module) {
     const serverRunning = await checkServer();
     
     if (!serverRunning) {
-      log(colors.red, '❌ Server not running on localhost:3001');
+      log(colors.red, `❌ Server not running on ${baseURL}`);
       log(colors.yellow, '💡 Please start the development server first: npm run dev');
       process.exit(1);
     }

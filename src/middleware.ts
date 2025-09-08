@@ -11,7 +11,15 @@ const getSecurityHeaders = (pathname: string) => {
   
   // Base security headers
   headers.set('X-DNS-Prefetch-Control', 'off');
-  headers.set('X-Frame-Options', 'DENY');
+  
+  // CRITICAL FIX: Allow iframe embedding in development for Replit preview
+  if (process.env.NODE_ENV === 'production') {
+    headers.set('X-Frame-Options', 'SAMEORIGIN');
+  } else {
+    // Development: Remove X-Frame-Options to allow Replit preview iframe
+    // Don't set X-Frame-Options at all in development
+  }
+  
   headers.set('X-Content-Type-Options', 'nosniff');
   headers.set('Referrer-Policy', 'strict-origin-when-cross-origin');
   

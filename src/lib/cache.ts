@@ -1,7 +1,7 @@
-// In-memory cache and Redis cache utilities for performance optimization
-import { createClient, type RedisClientType } from 'redis';
+// Fast in-memory cache for performance optimization
+// Redis disabled for faster startup times
 
-// In-memory cache fallback
+// In-memory cache implementation
 class InMemoryCache {
   private cache = new Map<string, { data: any; expiry: number }>();
   private maxSize = 1000; // Prevent memory leaks
@@ -38,7 +38,6 @@ class InMemoryCache {
 
   private cleanup(): void {
     const now = Date.now();
-    let deleted = 0;
     const toDelete: string[] = [];
 
     // Remove expired entries
@@ -48,10 +47,7 @@ class InMemoryCache {
       }
     }
 
-    toDelete.forEach(key => {
-      this.cache.delete(key);
-      deleted++;
-    });
+    toDelete.forEach(key => this.cache.delete(key));
 
     // If still too many items, remove oldest entries
     if (this.cache.size >= this.maxSize) {
@@ -59,13 +55,8 @@ class InMemoryCache {
       const toRemove = keys.slice(0, Math.floor(this.maxSize * 0.1)); // Remove 10%
       toRemove.forEach(key => this.cache.delete(key));
     }
-
-    if (deleted > 0) {
-      console.log(`Cleaned up ${deleted} expired cache entries`);
-    }
   }
 
-  // Get cache stats
   getStats() {
     const now = Date.now();
     let expired = 0;
@@ -87,115 +78,42 @@ class InMemoryCache {
   }
 }
 
-// Cache factory
+// Simple cache manager using only in-memory cache
 class CacheManager {
-  private redisClient: RedisClientType | null = null;
   private inMemoryCache = new InMemoryCache();
-  private isRedisConnected = false;
 
   constructor() {
-    this.initRedis();
-  }
-
-  private async initRedis() {
-    if (!process.env.REDIS_URL) {
-      console.log('No REDIS_URL provided, using in-memory cache');
-      return;
-    }
-
-    try {
-      this.redisClient = createClient({ url: process.env.REDIS_URL });
-
-      this.redisClient.on('connect', () => {
-        console.log('Redis connected');
-        this.isRedisConnected = true;
-      });
-
-      this.redisClient.on('error', (err: any) => {
-        console.warn('Redis connection error, falling back to in-memory cache:', err?.message || err);
-        this.isRedisConnected = false;
-      });
-
-      this.redisClient.on('end', () => {
-        console.log('Redis connection ended');
-        this.isRedisConnected = false;
-      });
-
-      await this.redisClient.connect();
-
-      await this.redisClient.connect();
-    } catch (error) {
-      console.warn('Failed to connect to Redis, using in-memory cache:', error);
-      this.isRedisConnected = false;
-    }
+    console.log('Cache: Using in-memory cache only (Redis disabled for performance)');
   }
 
   async get(key: string): Promise<any | null> {
-    try {
-      if (this.isRedisConnected && this.redisClient) {
-        const value = await this.redisClient.get(key);
-        return value ? JSON.parse(value) : null;
-      }
-    } catch (error) {
-      console.warn('Redis get error, falling back to in-memory:', error);
-    }
-
     return this.inMemoryCache.get(key);
   }
 
   async set(key: string, value: any, ttlSeconds: number = 300): Promise<void> {
-    try {
-      if (this.isRedisConnected && this.redisClient) {
-        await this.redisClient.setEx(key, ttlSeconds, JSON.stringify(value));
-        return;
-      }
-    } catch (error) {
-      console.warn('Redis set error, falling back to in-memory:', error);
-    }
-
     this.inMemoryCache.set(key, value, ttlSeconds);
   }
 
   async delete(key: string): Promise<void> {
-    try {
-      if (this.isRedisConnected && this.redisClient) {
-        await this.redisClient.del(key);
-      }
-    } catch (error) {
-      console.warn('Redis delete error:', error);
-    }
-
     this.inMemoryCache.delete(key);
   }
 
   async clear(): Promise<void> {
-    try {
-      if (this.isRedisConnected && this.redisClient) {
-        await this.redisClient.flushDb();
-      }
-    } catch (error) {
-      console.warn('Redis clear error:', error);
-    }
-
     this.inMemoryCache.clear();
   }
 
   getStats() {
     return {
       redis: {
-        connected: this.isRedisConnected,
-        client: !!this.redisClient,
+        connected: false,
+        client: false,
       },
       inMemory: this.inMemoryCache.getStats(),
     };
   }
 
-  // Disconnect Redis when shutting down
   async disconnect(): Promise<void> {
-    if (this.redisClient) {
-      await this.redisClient.disconnect();
-      this.isRedisConnected = false;
-    }
+    // No-op for in-memory cache
   }
 }
 
@@ -215,29 +133,55 @@ export const createCacheKey = (...parts: (string | number)[]): string => {
   return parts.join(':');
 };
 
-// Cache wrapper for functions
+// Cache wrapper for functions with database retry support
 export async function withCache<T>(
   key: string,
   fn: () => Promise<T>,
   ttlSeconds: number = 300
 ): Promise<T> {
-  // Disable caching during tests to avoid flakiness and stale data
+  // Disable caching during tests
   if (process.env.JEST_WORKER_ID) {
     return fn();
   }
+  
   // Try to get from cache first
   const cached = await cache.get(key);
   if (cached !== null) {
     return cached as T;
   }
 
-  // If not in cache, execute function
-  const result = await fn();
+  // If not in cache, execute function with retry logic
+  const result = await executeWithRetry(fn);
   
   // Cache the result
   await cache.set(key, result, ttlSeconds);
   
   return result;
+}
+
+// Helper function to execute database operations with retry logic
+async function executeWithRetry<T>(operation: () => Promise<T>, retries: number = 2): Promise<T> {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await operation();
+    } catch (error: any) {
+      const isConnectionError = 
+        error?.code === 'P1001' || // Prisma connection error
+        error?.code === 'P2024' || // Prisma connection timeout
+        error?.message?.includes('connection') ||
+        error?.message?.includes('ECONNREFUSED') ||
+        error?.message?.includes('terminating connection');
+      
+      if (isConnectionError && attempt < retries) {
+        const delay = Math.pow(2, attempt) * 1000; // Exponential backoff
+        console.warn(`Database operation failed, retrying in ${delay}ms... (attempt ${attempt + 1}/${retries + 1})`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        continue;
+      }
+      throw error;
+    }
+  }
+  throw new Error('Should not reach here');
 }
 
 // Cache invalidation patterns
@@ -249,14 +193,5 @@ export const cacheKeys = {
   source: (id: string) => `source:${id}`,
   health: 'health:status',
 } as const;
-
-// Graceful shutdown
-process.on('SIGTERM', async () => {
-  await cache.disconnect();
-});
-
-process.on('SIGINT', async () => {
-  await cache.disconnect();
-});
 
 export default cache;
