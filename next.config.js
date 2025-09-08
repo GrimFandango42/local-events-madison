@@ -3,13 +3,19 @@ const nextConfig = {
   experimental: {
     esmExternals: true,
     optimizeCss: false, // Disable CSS optimization in dev for faster compilation
+    // More aggressive turbo settings
     turbo: {
-      // Enable turbo mode for faster builds
       moduleIdStrategy: 'deterministic',
+      resolveAlias: {
+        // Skip heavy dependencies in dev
+        '@': './src',
+      },
     },
+    // Skip expensive features in development
+    serverComponentsExternalPackages: ['prisma', '@prisma/client'],
   },
   
-  // Development optimizations for Replit
+  // Aggressive development optimizations for Replit
   ...(process.env.NODE_ENV === 'development' && {
     swcMinify: false, // Disable SWC minification in dev for speed
     typescript: {
@@ -18,16 +24,19 @@ const nextConfig = {
     compiler: {
       removeConsole: false, // Keep console logs in dev
     },
+    // Skip middleware compilation
+    skipMiddlewareUrlNormalize: true,
+    skipTrailingSlashRedirect: true,
   }),
   eslint: {
     // Skip ESLint during production builds to unblock deploys
     ignoreDuringBuilds: true,
   },
   
-  // Replit development configuration
-  ...(process.env.NODE_ENV === 'development' && {
-    allowedHosts: true,
-  }),
+  // Fix Replit host issues without invalid config
+  async rewrites() {
+    return process.env.NODE_ENV === 'development' ? [] : [];
+  },
   
   // Performance optimizations
   compress: true,

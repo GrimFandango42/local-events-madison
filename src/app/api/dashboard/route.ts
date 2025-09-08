@@ -1,11 +1,24 @@
 // API route for dashboard statistics with caching and optimization
 import { NextRequest, NextResponse } from 'next/server';
-import { prisma } from '@/lib/db';
-import { withCache, cacheKeys } from '@/lib/cache';
 import type { DashboardStats } from '@/lib/types';
+
+// Lazy load heavy dependencies to reduce initial compilation
+const getDatabaseClient = async () => {
+  const { prisma } = await import('@/lib/db');
+  return prisma;
+};
+
+const getCache = async () => {
+  const { withCache, cacheKeys } = await import('@/lib/cache');
+  return { withCache, cacheKeys };
+};
 
 export async function GET(request: NextRequest) {
   try {
+    // Lazy load dependencies
+    const prisma = await getDatabaseClient();
+    const { withCache, cacheKeys } = await getCache();
+    
     // Cache dashboard data for 2 minutes
     const stats = await withCache(
       cacheKeys.dashboard,
