@@ -1,8 +1,8 @@
 // MCPEventCollector.ts - Core event collection service using MCP Playwright
 import { EventEmitter } from 'events';
 import { prisma } from '@/lib/db';
-import { EventDateParser } from '../../lib/dateParser';
-import { normalizeUrl } from '../../lib/url';
+import { EventDateParser } from '../../src/lib/dateParser';
+import { normalizeUrl } from '../../src/lib/url';
 
 interface ScrapingResult {
   success: boolean;

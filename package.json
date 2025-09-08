@@ -4,7 +4,9 @@
   "description": "Madison event discovery platform - Facebook-free event aggregation",
   "main": "index.js",
   "directories": {
-    "doc": "docs"
+    "doc": "docs",
+    "lib": "src",
+    "test": "tests"
   },
   "scripts": {
     "dev": "next dev",

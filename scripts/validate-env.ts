@@ -1,6 +1,6 @@
 #!/usr/bin/env tsx
 // Environment validation script (2025 best practices)
-import { EnvironmentSchema } from '../lib/validation';
+import { EnvironmentSchema } from '../src/lib/validation';
 import fs from 'fs/promises';
 import path from 'path';
 import dotenv from 'dotenv';

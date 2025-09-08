@@ -22,18 +22,19 @@
     ],
     "paths": {
       "@/*": ["./*"],
-      "@/components/*": ["./components/*", "./frontend/components/*"],
-      "@/lib/*": ["./lib/*"],
-      "@/types/*": ["./types/*"],
+      "@/components/*": ["./src/components/*", "./src/frontend/components/*"],
+      "@/lib/*": ["./src/lib/*"],
+      "@/types/*": ["./src/types/*"],
       "@/backend/*": ["./backend/*"]
     }
   },
   "include": ["next-env.d.ts", "**/*.ts", "**/*.tsx", ".next/types/**/*.ts"],
   "exclude": [
     "node_modules",
-    "chatgpt v1/**",
+    "legacy/**",
     "claude-code-sandbox/**",
     "playwright.config.ts",
-    "tests/**"
+    "tests/**",
+    "temp/**"
   ]
 }
