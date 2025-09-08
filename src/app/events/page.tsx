@@ -1,8 +1,8 @@
-// Enhanced Events listing page - Best of both implementations
+// Events listing page with EventCard grid layout
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, Filter, Calendar, MapPin, Clock, ExternalLink, Loader2 } from 'lucide-react';
+import { Search, Calendar, MapPin } from 'lucide-react';
 import type { EventWithDetails, EventFilters } from '@/lib/types';
 import EventCard from '@/components/EventCard';
 
@@ -47,54 +47,40 @@ export default function EventsPage() {
         { id: '3', name: 'West Side', slug: 'west-side' },
         { id: '4', name: 'Near East', slug: 'near-east' },
         { id: '5', name: 'Near West', slug: 'near-west' },
-        { id: '6', name: 'Middleton', slug: 'middleton' },
-        { id: '7', name: 'Fitchburg', slug: 'fitchburg' },
       ]);
     }
   };
 
   const fetchEvents = async () => {
+    setLoading(true);
+    setError(null);
+    
     try {
-      setSearchLoading(true);
-      setError(null);
-      
       const params = new URLSearchParams();
+      if (filters.search) params.append('search', filters.search);
+      if (filters.category?.[0]) params.append('category', filters.category[0]);
+      if (filters.neighborhood) params.append('neighborhood', filters.neighborhood);
       
-      if (filters.category?.length) {
-        params.append('category', filters.category.join(','));
-      }
-      if (filters.dateFrom) {
-        params.append('dateFrom', filters.dateFrom);
-      }
-      if (filters.dateTo) {
-        params.append('dateTo', filters.dateTo);
-      }
-      if (filters.neighborhood) {
-        params.append('neighborhood', filters.neighborhood);
-      }
-      if (filters.search) {
-        params.append('search', filters.search);
-      }
-
-      const response = await fetch(`/api/events?${params}`);
+      const response = await fetch(`/api/events?${params.toString()}`);
       const data = await response.json();
       
       if (data.success) {
         setEvents(data.data || []);
       } else {
-        setError(data.error || 'Failed to fetch events');
+        setError(data.error || 'Failed to load events');
       }
     } catch (error) {
       console.error('Failed to fetch events:', error);
       setError('Unable to load events. Please try again.');
     } finally {
       setLoading(false);
-      setSearchLoading(false);
     }
   };
 
   const handleSearch = () => {
+    setSearchLoading(true);
     setFilters({ ...filters, search: searchTerm });
+    setTimeout(() => setSearchLoading(false), 500);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -108,61 +94,16 @@ export default function EventsPage() {
     setSearchTerm('');
   };
 
-  const getCategoryColor = (category: string) => {
-    const colors: Record<string, string> = {
-      food: 'bg-orange-100 text-orange-800 border-orange-200',
-      music: 'bg-purple-100 text-purple-800 border-purple-200',
-      culture: 'bg-blue-100 text-blue-800 border-blue-200',
-      art: 'bg-pink-100 text-pink-800 border-pink-200',
-      festival: 'bg-green-100 text-green-800 border-green-200',
-      market: 'bg-yellow-100 text-yellow-800 border-yellow-200',
-      nightlife: 'bg-indigo-100 text-indigo-800 border-indigo-200',
-      theater: 'bg-red-100 text-red-800 border-red-200',
-      education: 'bg-teal-100 text-teal-800 border-teal-200',
-      community: 'bg-emerald-100 text-emerald-800 border-emerald-200',
-      family: 'bg-cyan-100 text-cyan-800 border-cyan-200',
-    };
-    return colors[category] || 'bg-gray-100 text-gray-800 border-gray-200';
-  };
-
-  const formatEventDate = (input: string | Date) => {
-    const date = new Date(input as any);
-    const now = new Date();
-    const isToday = date.toDateString() === now.toDateString();
-    const tomorrow = new Date(now);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const isTomorrow = date.toDateString() === tomorrow.toDateString();
-
-    if (isToday) return 'Today';
-    if (isTomorrow) return 'Tomorrow';
-    
-    return date.toLocaleDateString('en-US', {
-      weekday: 'short',
-      month: 'short',
-      day: 'numeric',
-    });
-  };
-
-  const formatEventTime = (input: string | Date) => {
-    return new Date(input as any).toLocaleTimeString('en-US', {
-      hour: 'numeric',
-      minute: '2-digit',
-      hour12: true,
-    });
-  };
-
   const getActiveFiltersCount = () => {
     let count = 0;
     if (filters.category?.length) count++;
     if (filters.neighborhood) count++;
     if (filters.search) count++;
-    if (filters.dateFrom) count++;
     return count;
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
-      
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -182,11 +123,9 @@ export default function EventsPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        
-        {/* Enhanced Search and Filters */}
+        {/* Search and Filters */}
         <div className="bg-white rounded-lg shadow-sm border p-6 mb-8">
           <div className="flex flex-col space-y-4">
-            
             {/* Search Row */}
             <div className="flex flex-col lg:flex-row gap-4">
               <div className="flex-1">
@@ -208,18 +147,13 @@ export default function EventsPage() {
                 disabled={searchLoading}
                 className="btn-primary flex items-center gap-2 px-6 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {searchLoading ? (
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Search className="w-4 h-4" />
-                )}
+                <Search className="w-4 h-4" />
                 Search
               </button>
             </div>
 
             {/* Filters Row */}
             <div className="flex flex-col md:flex-row gap-4">
-              
               {/* Category Filter */}
               <div className="flex-1">
                 <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
@@ -315,7 +249,7 @@ export default function EventsPage() {
                 event={event} 
                 priority={index < 3} // Prioritize first 3 images for LCP
               />
-            ))
+            ))}
           </div>
         ) : (
           <div className="text-center py-16">
@@ -330,7 +264,7 @@ export default function EventsPage() {
             {getActiveFiltersCount() > 0 && (
               <button
                 onClick={clearFilters}
-                className="btn-secondary"
+                className="btn-primary"
               >
                 Clear All Filters
               </button>
