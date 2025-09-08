@@ -33,10 +33,15 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   
-  // Fix Replit host issues without invalid config
+  // Replit-specific configuration
   async rewrites() {
-    return process.env.NODE_ENV === 'development' ? [] : [];
+    return [];
   },
+  
+  // Ensure proper host binding for Replit preview
+  ...(process.env.REPLIT_DEV_DOMAIN && {
+    assetPrefix: '',
+  }),
   
   // Performance optimizations
   compress: true,
