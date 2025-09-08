@@ -29,10 +29,27 @@ export function ServiceWorkerProvider({ children }: { children: React.ReactNode 
   const [updateAvailable, setUpdateAvailable] = useState(false);
 
   useEffect(() => {
-    // Initialize service worker
-    registerServiceWorker().then(() => {
-      setStatus(getServiceWorkerStatus());
-    });
+    // In dev, avoid service worker to prevent stale cached assets across port changes
+    if (process.env.NODE_ENV !== 'production') {
+      if ('serviceWorker' in navigator) {
+        navigator.serviceWorker.getRegistrations?.().then((regs) => {
+          regs.forEach((reg) => reg.unregister());
+        }).catch(() => {});
+      }
+      setStatus({
+        supported: 'serviceWorker' in navigator,
+        registered: false,
+        active: false,
+        installing: false,
+        waiting: false,
+        controller: null,
+      });
+    } else {
+      // Initialize service worker in production
+      registerServiceWorker().then(() => {
+        setStatus(getServiceWorkerStatus());
+      });
+    }
 
     // Handle network status
     handleNetworkStatus();
@@ -42,13 +59,13 @@ export function ServiceWorkerProvider({ children }: { children: React.ReactNode 
       setIsOnline(event.detail.isOnline);
     };
 
-    // Listen for service worker updates
-    const handleUpdateAvailable = () => {
-      setUpdateAvailable(true);
-    };
+    // Listen for service worker updates (prod only)
+    const handleUpdateAvailable = () => setUpdateAvailable(true);
 
     window.addEventListener('networkstatus', handleNetworkChange as EventListener);
-    window.addEventListener('swupdateavailable', handleUpdateAvailable);
+    if (process.env.NODE_ENV === 'production') {
+      window.addEventListener('swupdateavailable', handleUpdateAvailable);
+    }
 
     // Initial online status
     setIsOnline(navigator.onLine);
@@ -56,7 +73,9 @@ export function ServiceWorkerProvider({ children }: { children: React.ReactNode 
     // Cleanup
     return () => {
       window.removeEventListener('networkstatus', handleNetworkChange as EventListener);
-      window.removeEventListener('swupdateavailable', handleUpdateAvailable);
+      if (process.env.NODE_ENV === 'production') {
+        window.removeEventListener('swupdateavailable', handleUpdateAvailable);
+      }
     };
   }, []);
 

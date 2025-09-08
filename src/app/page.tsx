@@ -1,221 +1,326 @@
-// Home page for Local Events platform
+// Consumer-focused home page for Local Events platform
 'use client';
 
-import { useState, useEffect, memo } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
-import { Calendar, MapPin, Search, Plus, Settings, BarChart3, Clock } from 'lucide-react';
+import { Calendar, MapPin, Search, Sparkles, Music, Utensils, Palette, Users, ArrowRight } from 'lucide-react';
 import type { EventWithDetails, DashboardStats } from '@/lib/types';
-import { DashboardSkeleton } from '@/components/LoadingSkeletons';
-import StatsCard from '@/components/StatsCard';
 import EventCard from '@/components/EventCard';
 
 export default function HomePage() {
-  const [stats, setStats] = useState<DashboardStats | null>(null);
   const [recentEvents, setRecentEvents] = useState<EventWithDetails[]>([]);
+  const [featuredEvents, setFeaturedEvents] = useState<EventWithDetails[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchDashboardData();
+    fetchEvents();
   }, []);
 
-  const fetchDashboardData = async () => {
+  const fetchEvents = async () => {
     try {
-      const response = await fetch('/api/dashboard');
+      // Add timeout to prevent hanging
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 3000); // 3 second timeout
+      
+      const response = await fetch('/api/dashboard', {
+        signal: controller.signal,
+        headers: {
+          'Cache-Control': 'max-age=60' // Cache for 1 minute
+        }
+      });
+      clearTimeout(timeoutId);
+      
       const data = await response.json();
       if (data.success) {
-        setStats(data.data);
-        setRecentEvents(data.data.recentEvents);
+        setRecentEvents(data.data.recentEvents || []);
+        // Featured events could be curated or top upcoming events
+        setFeaturedEvents(data.data.recentEvents?.slice(0, 3) || []);
       } else {
-        setError(data.error || 'Failed to load dashboard');
+        setError(data.error || 'Failed to load events');
       }
     } catch (error) {
-      console.error('Failed to fetch dashboard data:', error);
-      setError('Unable to load dashboard data');
+      if (error.name === 'AbortError') {
+        console.warn('Dashboard API request timed out');
+        setError('Loading is taking longer than expected. The page is still functional.');
+      } else {
+        console.error('Failed to fetch events:', error);
+        setError('Unable to load events');
+      }
     } finally {
       setLoading(false);
     }
   };
 
-  if (loading) {
-    return <DashboardSkeleton />;
-  }
+  const categories = [
+    { name: 'Music', icon: Music, color: 'bg-purple-100 text-purple-700 hover:bg-purple-200', count: '12' },
+    { name: 'Food', icon: Utensils, color: 'bg-orange-100 text-orange-700 hover:bg-orange-200', count: '8' },
+    { name: 'Art', icon: Palette, color: 'bg-pink-100 text-pink-700 hover:bg-pink-200', count: '5' },
+    { name: 'Community', icon: Users, color: 'bg-blue-100 text-blue-700 hover:bg-blue-200', count: '15' },
+  ];
+
+  // Don't show full-screen loading - show page structure immediately
+  // if (loading) {
+  //   return (
+  //     <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-cyan-50 flex items-center justify-center">
+  //       <div className="text-center">
+  //         <div className="w-12 h-12 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+  //         <p className="text-gray-600">Discovering Madison events...</p>
+  //       </div>
+  //     </div>
+  //   );
+  // }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+    <div className="min-h-screen bg-gradient-to-br from-indigo-50 via-white to-cyan-50">
       
-      {/* Header */}
-      <header className="bg-white shadow-sm border-b">
+      {/* Navigation */}
+      <nav className="bg-white/80 backdrop-blur-md shadow-sm border-b sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">
             <div className="flex items-center gap-3">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Calendar className="w-6 h-6 text-blue-600" />
+              <div className="p-2 bg-gradient-to-br from-indigo-500 to-cyan-500 rounded-xl">
+                <Calendar className="w-6 h-6 text-white" />
               </div>
               <div>
-                <h1 className="text-xl font-bold text-gray-900">Local Events</h1>
-                <p className="text-sm text-gray-600">Madison, Wisconsin</p>
+                <h1 className="text-xl font-bold bg-gradient-to-r from-indigo-600 to-cyan-600 bg-clip-text text-transparent">
+                  Madison Events
+                </h1>
+                <p className="text-xs text-gray-500">Facebook-free discovery</p>
               </div>
             </div>
             
-            <nav className="flex items-center gap-4">
-              <Link href="/events" className="text-gray-600 hover:text-gray-900 font-medium">
-                Events
+            <div className="flex items-center gap-4">
+              <Link 
+                href="/events" 
+                className="px-4 py-3 min-h-[44px] flex items-center text-sm font-medium text-gray-700 hover:text-indigo-600 transition-colors rounded-lg"
+              >
+                All Events
               </Link>
-              <Link href="/admin/sources" className="flex items-center gap-2 text-gray-600 hover:text-gray-900 font-medium">
-                <Settings className="w-4 h-4" />
-                Manage Sources
+              <Link 
+                href="/events" 
+                className="px-4 py-3 min-h-[44px] flex items-center bg-indigo-600 text-white text-sm font-medium rounded-lg hover:bg-indigo-700 transition-colors"
+              >
+                Find Events
               </Link>
-            </nav>
+            </div>
           </div>
         </div>
-      </header>
-
-      {/* Error banner */}
-      {error && (
-        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 text-sm">
-          <div className="max-w-7xl mx-auto flex items-center justify-between">
-            <span>{error}</span>
-            <button
-              onClick={() => { setError(null); fetchDashboardData(); }}
-              className="underline font-medium"
-            >
-              Retry
-            </button>
-          </div>
-        </div>
-      )}
+      </nav>
 
       {/* Hero Section */}
-      <section className="py-16">
-        <div className="max-w-4xl mx-auto text-center px-4">
-          <h2 className="text-4xl font-bold text-gray-900 mb-4 text-balance">
-            Discover Madison Events Without Facebook
-          </h2>
-          <p className="text-xl text-gray-600 mb-8 text-balance">
-            Find food, music, and cultural events across Madison from local venues, restaurants, and community organizations—all privacy-focused and Facebook-free.
+      <section className="relative py-20 overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-r from-indigo-600/10 to-cyan-600/10"></div>
+        <div className="relative max-w-6xl mx-auto px-4 text-center">
+          <div className="inline-flex items-center gap-2 bg-white/80 backdrop-blur-sm px-4 py-2 rounded-full text-sm text-indigo-600 font-medium mb-6 shadow-sm">
+            <Sparkles className="w-4 h-4" />
+            Privacy-focused event discovery for Madison
+          </div>
+          
+          <h1 className="text-5xl sm:text-6xl font-bold text-gray-900 mb-6 leading-tight">
+            Find amazing
+            <span className="bg-gradient-to-r from-indigo-600 to-cyan-600 bg-clip-text text-transparent block">
+              local events
+            </span>
+          </h1>
+          
+          <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto leading-relaxed">
+            Discover concerts, festivals, food events, and community gatherings across Madison. 
+            No Facebook account required, no tracking, just great local events.
           </p>
           
-          <div className="flex flex-col sm:flex-row gap-4 justify-center">
-            <Link href="/events" className="btn-primary inline-flex items-center gap-2 px-6 py-3 text-lg">
+          <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+            <Link 
+              href="/events" 
+              className="inline-flex items-center gap-2 px-8 py-4 bg-indigo-600 text-white font-semibold rounded-xl hover:bg-indigo-700 transition-all shadow-lg hover:shadow-xl"
+            >
               <Search className="w-5 h-5" />
-              Browse Events
+              Explore Events
+              <ArrowRight className="w-5 h-5" />
             </Link>
-            <Link href="/admin/sources" className="btn-secondary inline-flex items-center gap-2 px-6 py-3 text-lg">
-              <Plus className="w-5 h-5" />
-              Add Event Source
-            </Link>
+            <a 
+              href="#featured" 
+              className="inline-flex items-center gap-2 px-8 py-4 bg-white text-indigo-600 font-semibold rounded-xl hover:bg-gray-50 transition-all shadow-md border border-indigo-200"
+            >
+              <Calendar className="w-5 h-5" />
+              See What's On
+            </a>
+          </div>
+          
+          {/* Quick Category Navigation */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-2xl mx-auto">
+            {categories.map((category) => (
+              <Link
+                key={category.name}
+                href={`/events?category=${category.name.toLowerCase()}`}
+                className={`flex items-center gap-3 p-4 min-h-[56px] rounded-xl transition-all ${category.color} group`}
+                data-testid="category-link"
+              >
+                <category.icon className="w-5 h-5" />
+                <div className="text-left">
+                  <div className="font-medium">{category.name}</div>
+                  <div className="text-xs opacity-70">{category.count} events</div>
+                </div>
+              </Link>
+            ))}
           </div>
         </div>
       </section>
 
-      {/* Stats Section */}
-      {stats && (
-        <section className="py-12 bg-white/50">
+      {/* Featured Events */}
+      {!loading && featuredEvents.length > 0 && (
+        <section id="featured" className="py-16 bg-white/50">
           <div className="max-w-7xl mx-auto px-4">
-            <h3 className="text-2xl font-bold text-gray-900 text-center mb-8">
-              Platform Statistics
-            </h3>
+            <div className="text-center mb-12">
+              <h2 className="text-3xl font-bold text-gray-900 mb-4">
+                Happening This Week
+              </h2>
+              <p className="text-lg text-gray-600">
+                Don't miss these popular events around Madison
+              </p>
+            </div>
             
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-              <StatsCard
-                title="Event Sources"
-                value={stats.totalSources}
-                description="Event Sources"
-                icon={BarChart3}
-                iconColor="text-blue-600"
-                bgColor="bg-blue-100"
-              />
-              <StatsCard
-                title="Total Events"
-                value={stats.totalEvents}
-                description="Total Events"
-                icon={Calendar}
-                iconColor="text-green-600"
-                bgColor="bg-green-100"
-              />
-              <StatsCard
-                title="Events This Week"
-                value={stats.eventsLast7Days}
-                description="This Week"
-                icon={Clock}
-                iconColor="text-purple-600"
-                bgColor="bg-purple-100"
-              />
-              <StatsCard
-                title="Active Sources"
-                value={stats.activeSources}
-                description="Active Sources"
-                icon={MapPin}
-                iconColor="text-indigo-600"
-                bgColor="bg-indigo-100"
-              />
+            <div className="grid md:grid-cols-3 gap-8 mb-8">
+              {featuredEvents.map((event, index) => (
+                <div key={event.id} className="transform hover:scale-105 transition-transform">
+                  <EventCard 
+                    event={event} 
+                    priority={index === 0}
+                  />
+                </div>
+              ))}
+            </div>
+            
+            <div className="text-center">
+              <Link 
+                href="/events" 
+                className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition-colors"
+              >
+                View All Events
+                <ArrowRight className="w-4 h-4" />
+              </Link>
             </div>
           </div>
         </section>
       )}
 
-      {/* Recent Events Preview */}
-      <section className="py-12">
-        <div className="max-w-7xl mx-auto px-4">
-          <div className="flex items-center justify-between mb-8">
-            <h3 className="text-2xl font-bold text-gray-900">Recent Events</h3>
-            <Link href="/events" className="text-blue-600 hover:text-blue-700 font-medium">
-              View all events →
-            </Link>
-          </div>
-          
-          {recentEvents.length > 0 ? (
-            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+      {/* Recent Events */}
+      {!loading && recentEvents.length > 0 && (
+        <section className="py-16">
+          <div className="max-w-7xl mx-auto px-4">
+            <div className="flex items-center justify-between mb-8">
+              <div>
+                <h3 className="text-2xl font-bold text-gray-900">Latest Events</h3>
+                <p className="text-gray-600">Freshly added to our platform</p>
+              </div>
+              <Link 
+                href="/events" 
+                className="text-indigo-600 hover:text-indigo-700 font-medium flex items-center gap-1"
+              >
+                See all <ArrowRight className="w-4 h-4" />
+              </Link>
+            </div>
+            
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
               {recentEvents.slice(0, 6).map((event, index) => (
                 <EventCard 
                   key={event.id} 
                   event={event} 
-                  priority={index < 2} // Prioritize first 2 images for LCP
+                  priority={false}
                 />
               ))}
             </div>
-          ) : (
-            <div className="text-center py-12">
-              <Calendar className="w-16 h-16 text-gray-300 mx-auto mb-4" />
-              <h4 className="text-lg font-semibold text-gray-600 mb-2">No Events Yet</h4>
-              <p className="text-gray-500 mb-6">
-                Start by adding event sources to begin discovering Madison events.
-              </p>
-              <Link href="/admin/sources" className="btn-primary inline-flex items-center gap-2">
-                <Plus className="w-4 h-4" />
-                Add Your First Source
-              </Link>
-            </div>
-          )}
-        </div>
-      </section>
+          </div>
+        </section>
+      )}
 
-      {/* Call to Action */}
-      <section className="py-16 bg-blue-600 text-white">
-        <div className="max-w-4xl mx-auto text-center px-4">
-          <h3 className="text-3xl font-bold mb-4">Help Grow the Madison Event Community</h3>
-          <p className="text-xl text-blue-100 mb-8">
-            Know of a local venue, restaurant, or organization that hosts events? 
-            Add it to our platform and help fellow Madisonians discover great events.
-          </p>
-          <Link href="/admin/sources" className="bg-white text-blue-600 px-6 py-3 rounded-lg font-semibold hover:bg-blue-50 transition-colors inline-flex items-center gap-2">
-            <Plus className="w-5 h-5" />
-            Contribute Event Source
-          </Link>
-        </div>
-      </section>
+      {/* Loading State for Events */}
+      {loading && (
+        <section className="py-16 bg-white/50">
+          <div className="max-w-7xl mx-auto px-4 text-center">
+            <div className="w-8 h-8 border-4 border-indigo-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-gray-600">Loading events...</p>
+          </div>
+        </section>
+      )}
+      
+      {/* Empty State */}
+      {!loading && recentEvents.length === 0 && (
+        <section className="py-20">
+          <div className="max-w-2xl mx-auto px-4 text-center">
+            <Calendar className="w-20 h-20 text-gray-300 mx-auto mb-6" />
+            <h3 className="text-2xl font-bold text-gray-900 mb-4">
+              Getting Ready to Launch
+            </h3>
+            <p className="text-lg text-gray-600 mb-8">
+              We're setting up connections with local venues and organizations to bring you the best Madison events. 
+              Check back soon for concerts, festivals, and community gatherings!
+            </p>
+            <Link 
+              href="/admin/sources" 
+              className="inline-flex items-center gap-2 px-6 py-3 bg-indigo-600 text-white font-medium rounded-lg hover:bg-indigo-700 transition-colors"
+            >
+              Help Add Local Venues
+              <ArrowRight className="w-4 h-4" />
+            </Link>
+          </div>
+        </section>
+      )}
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-gray-300 py-8">
-        <div className="max-w-7xl mx-auto px-4 text-center">
-          <p className="mb-2">
-            Local Events Platform - Privacy-focused event discovery for Madison, WI
-          </p>
-          <p className="text-sm text-gray-500">
-            Built with ❤️ for the Madison community • No Facebook tracking • Open source
-          </p>
+      <footer className="bg-gray-900 text-gray-300 py-12">
+        <div className="max-w-7xl mx-auto px-4">
+          <div className="grid md:grid-cols-3 gap-8">
+            <div>
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2 bg-gradient-to-br from-indigo-500 to-cyan-500 rounded-xl">
+                  <Calendar className="w-5 h-5 text-white" />
+                </div>
+                <span className="text-white font-semibold">Madison Events</span>
+              </div>
+              <p className="text-gray-400 text-sm">
+                Privacy-focused event discovery for Wisconsin's capital. 
+                Find local events without Facebook tracking.
+              </p>
+            </div>
+            
+            <div>
+              <h4 className="text-white font-medium mb-4">Discover</h4>
+              <div className="space-y-2 text-sm">
+                <Link href="/events?category=music" className="block hover:text-white transition-colors py-2 px-3 rounded min-h-[44px] flex items-center">
+                  Music & Concerts
+                </Link>
+                <Link href="/events?category=food" className="block hover:text-white transition-colors py-2 px-3 rounded min-h-[44px] flex items-center">
+                  Food & Dining
+                </Link>
+                <Link href="/events?category=art" className="block hover:text-white transition-colors py-2 px-3 rounded min-h-[44px] flex items-center">
+                  Arts & Culture
+                </Link>
+                <Link href="/events?category=community" className="block hover:text-white transition-colors py-2 px-3 rounded min-h-[44px] flex items-center">
+                  Community Events
+                </Link>
+              </div>
+            </div>
+            
+            <div>
+              <h4 className="text-white font-medium mb-4">About</h4>
+              <div className="space-y-2 text-sm">
+                <Link href="/admin/sources" className="block hover:text-white transition-colors py-2 px-3 rounded min-h-[44px] flex items-center">
+                  Add Your Venue
+                </Link>
+                <div className="block text-gray-400">
+                  Built for Madison community
+                </div>
+                <div className="block text-gray-400">
+                  No tracking, no ads
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div className="border-t border-gray-800 mt-8 pt-8 text-center text-sm text-gray-500">
+            <p>Built with ❤️ for the Madison community • Privacy-first • Open source</p>
+          </div>
         </div>
       </footer>
     </div>

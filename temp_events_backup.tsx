@@ -1,10 +1,9 @@
-// Events listing page with EventCard grid layout
+// Enhanced Events listing page - Best of both implementations
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Search, Calendar, MapPin } from 'lucide-react';
+import { Search, Filter, Calendar, MapPin, Clock, ExternalLink, Loader2 } from 'lucide-react';
 import type { EventWithDetails, EventFilters } from '@/lib/types';
-import EventCard from '@/components/EventCard';
 
 interface Neighborhood {
   id: string;
@@ -47,40 +46,54 @@ export default function EventsPage() {
         { id: '3', name: 'West Side', slug: 'west-side' },
         { id: '4', name: 'Near East', slug: 'near-east' },
         { id: '5', name: 'Near West', slug: 'near-west' },
+        { id: '6', name: 'Middleton', slug: 'middleton' },
+        { id: '7', name: 'Fitchburg', slug: 'fitchburg' },
       ]);
     }
   };
 
   const fetchEvents = async () => {
-    setLoading(true);
-    setError(null);
-    
     try {
-      const params = new URLSearchParams();
-      if (filters.search) params.append('search', filters.search);
-      if (filters.category?.[0]) params.append('category', filters.category[0]);
-      if (filters.neighborhood) params.append('neighborhood', filters.neighborhood);
+      setSearchLoading(true);
+      setError(null);
       
-      const response = await fetch(`/api/events?${params.toString()}`);
+      const params = new URLSearchParams();
+      
+      if (filters.category?.length) {
+        params.append('category', filters.category.join(','));
+      }
+      if (filters.dateFrom) {
+        params.append('dateFrom', filters.dateFrom);
+      }
+      if (filters.dateTo) {
+        params.append('dateTo', filters.dateTo);
+      }
+      if (filters.neighborhood) {
+        params.append('neighborhood', filters.neighborhood);
+      }
+      if (filters.search) {
+        params.append('search', filters.search);
+      }
+
+      const response = await fetch(`/api/events?${params}`);
       const data = await response.json();
       
       if (data.success) {
         setEvents(data.data || []);
       } else {
-        setError(data.error || 'Failed to load events');
+        setError(data.error || 'Failed to fetch events');
       }
     } catch (error) {
       console.error('Failed to fetch events:', error);
       setError('Unable to load events. Please try again.');
     } finally {
       setLoading(false);
+      setSearchLoading(false);
     }
   };
 
   const handleSearch = () => {
-    setSearchLoading(true);
     setFilters({ ...filters, search: searchTerm });
-    setTimeout(() => setSearchLoading(false), 500);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
@@ -94,16 +107,61 @@ export default function EventsPage() {
     setSearchTerm('');
   };
 
+  const getCategoryColor = (category: string) => {
+    const colors: Record<string, string> = {
+      food: 'bg-orange-100 text-orange-800 border-orange-200',
+      music: 'bg-purple-100 text-purple-800 border-purple-200',
+      culture: 'bg-blue-100 text-blue-800 border-blue-200',
+      art: 'bg-pink-100 text-pink-800 border-pink-200',
+      festival: 'bg-green-100 text-green-800 border-green-200',
+      market: 'bg-yellow-100 text-yellow-800 border-yellow-200',
+      nightlife: 'bg-indigo-100 text-indigo-800 border-indigo-200',
+      theater: 'bg-red-100 text-red-800 border-red-200',
+      education: 'bg-teal-100 text-teal-800 border-teal-200',
+      community: 'bg-emerald-100 text-emerald-800 border-emerald-200',
+      family: 'bg-cyan-100 text-cyan-800 border-cyan-200',
+    };
+    return colors[category] || 'bg-gray-100 text-gray-800 border-gray-200';
+  };
+
+  const formatEventDate = (input: string | Date) => {
+    const date = new Date(input as any);
+    const now = new Date();
+    const isToday = date.toDateString() === now.toDateString();
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const isTomorrow = date.toDateString() === tomorrow.toDateString();
+
+    if (isToday) return 'Today';
+    if (isTomorrow) return 'Tomorrow';
+    
+    return date.toLocaleDateString('en-US', {
+      weekday: 'short',
+      month: 'short',
+      day: 'numeric',
+    });
+  };
+
+  const formatEventTime = (input: string | Date) => {
+    return new Date(input as any).toLocaleTimeString('en-US', {
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    });
+  };
+
   const getActiveFiltersCount = () => {
     let count = 0;
     if (filters.category?.length) count++;
     if (filters.neighborhood) count++;
     if (filters.search) count++;
+    if (filters.dateFrom) count++;
     return count;
   };
 
   return (
     <div className="min-h-screen bg-gray-50">
+      
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -123,22 +181,23 @@ export default function EventsPage() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        {/* Search and Filters */}
+        
+        {/* Enhanced Search and Filters */}
         <div className="bg-white rounded-lg shadow-sm border p-6 mb-8">
           <div className="flex flex-col space-y-4">
+            
             {/* Search Row */}
             <div className="flex flex-col lg:flex-row gap-4">
               <div className="flex-1">
                 <div className="relative">
                   <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                   <input
-                    type="search"
+                    type="text"
                     placeholder="Search events by name, description, venue..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     onKeyPress={handleKeyPress}
-                    className="w-full pl-10 pr-4 py-3 min-h-[44px] border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                    data-testid="search-input"
+                    className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
                   />
                 </div>
               </div>
@@ -146,15 +205,20 @@ export default function EventsPage() {
               <button
                 onClick={handleSearch}
                 disabled={searchLoading}
-                className="btn-primary flex items-center gap-2 px-6 py-3 min-h-[44px] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="btn-primary flex items-center gap-2 px-6 disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                <Search className="w-4 h-4" />
+                {searchLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Search className="w-4 h-4" />
+                )}
                 Search
               </button>
             </div>
 
             {/* Filters Row */}
             <div className="flex flex-col md:flex-row gap-4">
+              
               {/* Category Filter */}
               <div className="flex-1">
                 <label className="block text-sm font-medium text-gray-700 mb-2">Category</label>
@@ -164,8 +228,7 @@ export default function EventsPage() {
                     ...filters, 
                     category: e.target.value ? [e.target.value] : undefined 
                   })}
-                  className="w-full px-3 py-3 min-h-[44px] border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  data-testid="category-filter"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   <option value="">All Categories</option>
                   <option value="food">Food & Dining</option>
@@ -191,8 +254,7 @@ export default function EventsPage() {
                     ...filters, 
                     neighborhood: e.target.value || undefined 
                   })}
-                  className="w-full px-3 py-3 min-h-[44px] border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                  data-testid="neighborhood-filter"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 >
                   <option value="">All Neighborhoods</option>
                   {neighborhoods.map((neighborhood) => (
@@ -208,7 +270,7 @@ export default function EventsPage() {
                 <div className="flex items-end">
                   <button
                     onClick={clearFilters}
-                    className="px-4 py-3 min-h-[44px] text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                    className="px-4 py-2 text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
                   >
                     Clear Filters ({getActiveFiltersCount()})
                   </button>
@@ -228,7 +290,7 @@ export default function EventsPage() {
                   setError(null);
                   fetchEvents();
                 }}
-                className="ml-auto text-red-600 hover:text-red-700 text-sm font-medium px-3 py-2 min-h-[44px] rounded-lg hover:bg-red-50"
+                className="ml-auto text-red-600 hover:text-red-700 text-sm font-medium"
               >
                 Try Again
               </button>
@@ -245,13 +307,81 @@ export default function EventsPage() {
             </div>
           </div>
         ) : events.length > 0 ? (
-          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-            {events.map((event, index) => (
-              <EventCard 
-                key={event.id} 
-                event={event} 
-                priority={index < 3} // Prioritize first 3 images for LCP
-              />
+          <div className="space-y-6">
+            {events.map((event) => (
+              <div key={event.id} className="bg-white rounded-lg shadow-sm border hover:shadow-md transition-all duration-200">
+                <div className="p-6">
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="flex items-center gap-3 flex-wrap">
+                      <span className={`badge border ${getCategoryColor(event.category)}`}>
+                        {event.category}
+                      </span>
+                      {(event.tags || '').split(',').filter(tag => tag.trim()).map((tag) => (
+                        <span key={tag.trim()} className="badge bg-gray-100 text-gray-600 border border-gray-200">
+                          {tag.trim()}
+                        </span>
+                      ))}
+                    </div>
+                    <div className="text-right flex-shrink-0 ml-4">
+                      <div className="text-lg font-semibold text-gray-900">
+                        {formatEventDate(event.startDateTime)}
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        {formatEventTime(event.startDateTime)}
+                      </div>
+                    </div>
+                  </div>
+                  
+                  <h3 className="text-xl font-semibold text-gray-900 mb-2 leading-tight">
+                    {event.title}
+                  </h3>
+                  
+                  {event.description && (
+                    <p className="text-gray-600 mb-4 line-clamp-3 leading-relaxed">
+                      {event.description}
+                    </p>
+                  )}
+                  
+                  <div className="flex items-center justify-between flex-wrap gap-4">
+                    <div className="flex items-center gap-6 text-sm text-gray-600">
+                      <div className="flex items-center gap-2">
+                        <MapPin className="w-4 h-4 flex-shrink-0" />
+                        <span className="truncate">
+                          {event.venue?.name || event.customLocation || 'Location TBD'}
+                          {event.venue?.neighborhood && (
+                            <span className="text-blue-600 ml-1">• {event.venue.neighborhood}</span>
+                          )}
+                        </span>
+                      </div>
+                      
+                      <div className="flex items-center gap-2">
+                        <Clock className="w-4 h-4 flex-shrink-0" />
+                        <span>{formatEventTime(event.startDateTime)}</span>
+                      </div>
+                    </div>
+                    
+                    <div className="flex items-center gap-4">
+                      {event.price && (
+                        <span className="font-semibold text-green-600 text-sm">
+                          {String(event.price).toLowerCase().includes('free') ? 'Free' : String(event.price)}
+                        </span>
+                      )}
+                      
+                      {(event.ticketUrl || event.sourceUrl) && (
+                        <a
+                          href={(event.ticketUrl ?? undefined) || (event.sourceUrl ?? undefined)}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-blue-600 hover:text-blue-700 flex items-center gap-2 text-sm font-medium hover:underline transition-colors"
+                        >
+                          <span>View Details</span>
+                          <ExternalLink className="w-4 h-4" />
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </div>
             ))}
           </div>
         ) : (
@@ -267,7 +397,7 @@ export default function EventsPage() {
             {getActiveFiltersCount() > 0 && (
               <button
                 onClick={clearFilters}
-                className="btn-primary min-h-[44px] px-6 py-3"
+                className="btn-secondary"
               >
                 Clear All Filters
               </button>

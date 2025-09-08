@@ -80,6 +80,8 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         {/* DNS prefetch for known domains */}
         <link rel="dns-prefetch" href="//localhost" />
+        {/* Favicon */}
+        <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
       </head>
       <body className={`${inter.className} h-full antialiased`}>
         <ServiceWorkerProvider>
