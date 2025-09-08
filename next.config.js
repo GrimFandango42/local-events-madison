@@ -9,6 +9,11 @@ const nextConfig = {
     ignoreDuringBuilds: true,
   },
   
+  // Replit development configuration
+  ...(process.env.NODE_ENV === 'development' && {
+    allowedHosts: true,
+  }),
+  
   // Performance optimizations
   compress: true,
   poweredByHeader: false,
