@@ -295,7 +295,7 @@ export const createCacheKey = (...parts: (string | number)[]): string => {
   return parts.join(':');
 };
 
-// Cache wrapper for functions
+// Cache wrapper for functions with database retry support
 export async function withCache<T>(
   key: string,
   fn: () => Promise<T>,
@@ -311,13 +311,38 @@ export async function withCache<T>(
     return cached as T;
   }
 
-  // If not in cache, execute function
-  const result = await fn();
+  // If not in cache, execute function with retry logic for database operations
+  const result = await executeWithRetry(fn);
   
   // Cache the result
   await cache.set(key, result, ttlSeconds);
   
   return result;
+}
+
+// Helper function to execute database operations with retry logic
+async function executeWithRetry<T>(operation: () => Promise<T>, retries: number = 2): Promise<T> {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try {
+      return await operation();
+    } catch (error: any) {
+      const isConnectionError = 
+        error?.code === 'P1001' || // Prisma connection error
+        error?.code === 'P2024' || // Prisma connection timeout
+        error?.message?.includes('connection') ||
+        error?.message?.includes('ECONNREFUSED') ||
+        error?.message?.includes('terminating connection');
+      
+      if (isConnectionError && attempt < retries) {
+        const delay = Math.pow(2, attempt) * 1000; // Exponential backoff
+        console.warn(`Database operation failed, retrying in ${delay}ms... (attempt ${attempt + 1}/${retries + 1})`);
+        await new Promise(resolve => setTimeout(resolve, delay));
+        continue;
+      }
+      throw error;
+    }
+  }
+  throw new Error('Should not reach here');
 }
 
 // Cache invalidation patterns
