@@ -129,8 +129,20 @@ const nextConfig = {
     const dev = process.env.NODE_ENV !== 'production';
 
     if (dev) {
-      // In development, minimize headers to avoid breaking HMR and static asset serving
+      // Development headers - Allow Replit preview iframe
       return [
+        {
+          source: '/(.*)',
+          headers: [
+            // Allow Replit preview iframe embedding
+            { key: 'X-Frame-Options', value: 'ALLOWALL' },
+            // Allow Replit domains for iframe embedding
+            { key: 'Content-Security-Policy', value: "default-src 'self' 'unsafe-inline' 'unsafe-eval' data: blob: *; frame-ancestors *;" },
+            { key: 'X-Content-Type-Options', value: 'nosniff' },
+            // Minimal caching for development
+            { key: 'Cache-Control', value: 'no-cache, no-store, must-revalidate' },
+          ],
+        },
         {
           source: '/api/(.*)',
           headers: [
@@ -141,7 +153,7 @@ const nextConfig = {
       ];
     }
 
-    // Production security headers
+    // Production security headers - Allow Replit deployment domains for iframe
     const scriptSrc = "script-src 'self' 'unsafe-eval' 'unsafe-inline' blob:";
     const connectSrc = "connect-src 'self' https://api.anthropic.com";
     const workerSrc = "worker-src 'self' blob:";
@@ -157,7 +169,7 @@ const nextConfig = {
       "object-src 'none'",
       "base-uri 'self'",
       "form-action 'self'",
-      "frame-ancestors 'none'",
+      "frame-ancestors 'self' *.replit.dev *.repl.co",
     ].join('; ');
 
     return [
@@ -167,7 +179,7 @@ const nextConfig = {
           { key: 'Content-Security-Policy', value: csp },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
           { key: 'X-Content-Type-Options', value: 'nosniff' },
-          { key: 'X-Frame-Options', value: 'DENY' },
+          { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
           { key: 'X-XSS-Protection', value: '1; mode=block' },
           { key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains; preload' },
           { key: 'Permissions-Policy', value: 'geolocation=(), microphone=(), camera=(), payment=(), usb=(), bluetooth=()' },
