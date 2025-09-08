@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react';
 import { Search, Filter, Calendar, MapPin, Clock, ExternalLink, Loader2 } from 'lucide-react';
 import type { EventWithDetails, EventFilters } from '@/lib/types';
+import EventCard from '@/components/EventCard';
 
 interface Neighborhood {
   id: string;
@@ -307,82 +308,14 @@ export default function EventsPage() {
             </div>
           </div>
         ) : events.length > 0 ? (
-          <div className="space-y-6">
-            {events.map((event) => (
-              <div key={event.id} className="bg-white rounded-lg shadow-sm border hover:shadow-md transition-all duration-200">
-                <div className="p-6">
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center gap-3 flex-wrap">
-                      <span className={`badge border ${getCategoryColor(event.category)}`}>
-                        {event.category}
-                      </span>
-                      {(event.tags || '').split(',').filter(tag => tag.trim()).map((tag) => (
-                        <span key={tag.trim()} className="badge bg-gray-100 text-gray-600 border border-gray-200">
-                          {tag.trim()}
-                        </span>
-                      ))}
-                    </div>
-                    <div className="text-right flex-shrink-0 ml-4">
-                      <div className="text-lg font-semibold text-gray-900">
-                        {formatEventDate(event.startDateTime)}
-                      </div>
-                      <div className="text-sm text-gray-600">
-                        {formatEventTime(event.startDateTime)}
-                      </div>
-                    </div>
-                  </div>
-                  
-                  <h3 className="text-xl font-semibold text-gray-900 mb-2 leading-tight">
-                    {event.title}
-                  </h3>
-                  
-                  {event.description && (
-                    <p className="text-gray-600 mb-4 line-clamp-3 leading-relaxed">
-                      {event.description}
-                    </p>
-                  )}
-                  
-                  <div className="flex items-center justify-between flex-wrap gap-4">
-                    <div className="flex items-center gap-6 text-sm text-gray-600">
-                      <div className="flex items-center gap-2">
-                        <MapPin className="w-4 h-4 flex-shrink-0" />
-                        <span className="truncate">
-                          {event.venue?.name || event.customLocation || 'Location TBD'}
-                          {event.venue?.neighborhood && (
-                            <span className="text-blue-600 ml-1">• {event.venue.neighborhood}</span>
-                          )}
-                        </span>
-                      </div>
-                      
-                      <div className="flex items-center gap-2">
-                        <Clock className="w-4 h-4 flex-shrink-0" />
-                        <span>{formatEventTime(event.startDateTime)}</span>
-                      </div>
-                    </div>
-                    
-                    <div className="flex items-center gap-4">
-                      {event.price && (
-                        <span className="font-semibold text-green-600 text-sm">
-                          {String(event.price).toLowerCase().includes('free') ? 'Free' : String(event.price)}
-                        </span>
-                      )}
-                      
-                      {(event.ticketUrl || event.sourceUrl) && (
-                        <a
-                          href={(event.ticketUrl ?? undefined) || (event.sourceUrl ?? undefined)}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-blue-600 hover:text-blue-700 flex items-center gap-2 text-sm font-medium hover:underline transition-colors"
-                        >
-                          <span>View Details</span>
-                          <ExternalLink className="w-4 h-4" />
-                        </a>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))}
+          <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+            {events.map((event, index) => (
+              <EventCard 
+                key={event.id} 
+                event={event} 
+                priority={index < 3} // Prioritize first 3 images for LCP
+              />
+            ))
           </div>
         ) : (
           <div className="text-center py-16">

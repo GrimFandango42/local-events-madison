@@ -1,226 +1,222 @@
-# 🎭 Local Events Madison
-*Facebook-free event discovery for Wisconsin's capital*
+# Local Events Platform
+
+A web application for aggregating and discovering local events. Currently configured for Madison, WI but can be adapted for other cities.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Next.js](https://img.shields.io/badge/Next.js-14-black)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue)](https://www.typescriptlang.org/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.4-38B2AC)](https://tailwindcss.com/)
 
-A privacy-focused web application for discovering cultural events, live music, and community gatherings in Madison, Wisconsin. No social media tracking, no user accounts required—just pure local event discovery.
+## Screenshot
 
----
+![Local Events Homepage](./screenshots/01-homepage-main-events.png)
+*Event aggregation interface showing Madison events*
 
-## 🌟 What Users See
+## Features
 
-### Main Event Discovery
-![Homepage showing Madison events](./screenshots/01-homepage-main-events.png)
-*Clean interface displaying local cultural events, concerts, and community gatherings*
+- Event aggregation from multiple sources
+- Neighborhood-based filtering
+- Event categorization (food, music, culture, etc.)
+- User-submitted venues and sources
+- No user accounts required
+- SQLite database with optional PostgreSQL support
 
-### Smart Search & Filtering
-<div align="center">
-<img src="./screenshots/08-events-page-with-filters.png" alt="Search and filtering interface" width="45%">
-<img src="./screenshots/11-search-music-results.png" alt="Music search results" width="45%">
-</div>
+## Tech Stack
 
-*Powerful filtering by category, neighborhood, and keywords to find exactly what you're looking for*
+- **Frontend**: Next.js 14, TypeScript, Tailwind CSS
+- **Backend**: Next.js API Routes, Prisma ORM
+- **Database**: SQLite (default) or PostgreSQL
+- **Scraping**: Playwright, MCP (Model Context Protocol)
+- **Testing**: Vitest (unit), Playwright (E2E), Jest (integration)
 
-### Rich Event Details
-![Event listings with detailed information](./screenshots/06-events-page.png)
-*Each event shows comprehensive details: venue, timing, pricing, and descriptions*
-
----
-
-## ✨ Features
-
-🎵 **Music & Cultural Events** - Jazz at Memorial Union, Symphony performances, Art Fairs  
-🏘️ **Neighborhood Filtering** - Downtown, Capitol, University, and more  
-🔍 **Smart Search** - Find events by keyword, category, or venue  
-🚫 **No Social Media** - Privacy-first design with zero Facebook dependencies  
-📱 **Mobile Friendly** - Responsive design for all devices  
-⚡ **Lightning Fast** - Local SQLite database with optional PostgreSQL  
-
----
-
-## 🚀 Quick Setup
-
-Get your Madison events platform running in under 3 minutes:
+## Quick Setup
 
 ```bash
-# Clone and setup
-git clone [repository-url] local-events-madison
-cd local-events-madison
+# Clone the repository
+git clone [repository-url] local-events
+cd local-events
 
-# One-command setup
+# Install dependencies
+npm install
+
+# Set up environment variables
+cp .env.example .env.local
+# Edit .env.local with your configuration
+
+# Set up database
+npm run db:generate
+npm run db:push
+npm run db:seed
+
+# Start development server
+npm run dev
+```
+
+The application will be available at `http://localhost:3000`.
+
+## One‑Click Production Launch (Windows)
+
+- Double‑click `start-prod-health.cmd`
+  - Installs dependencies (ci if lock present)
+  - Runs `prisma generate` and `db push`
+  - Seeds sample data
+  - Builds the app and starts `next start` on port 3010
+  - Opens `http://localhost:3010/admin/health`
+
+## One-Click Development
+
+For automated setup:
+
+```bash
 npm run dev:oneclick
 ```
 
-This automatically:
-- ✅ Installs all dependencies
-- ✅ Sets up the database
-- ✅ Seeds with Madison event data
-- ✅ Starts the development server
-- ✅ Opens health check in browser
+This command will:
+1. Install dependencies
+2. Generate and push database schema
+3. Seed sample data
+4. Start development server
+5. Open browser to health check
 
-**Ready at:** `http://localhost:3000`
+Health check endpoint: `http://localhost:3000/api/health`
 
----
+## Automated Health Check (Playwright)
 
-## 🛠️ Tech Stack
-
-**Frontend Excellence**
-- **Next.js 14** - React framework with App Router
-- **TypeScript** - Strict typing throughout
-- **Tailwind CSS** - Modern, responsive styling
-
-**Backend Power**
-- **Next.js API Routes** - Serverless-ready endpoints
-- **Prisma ORM** - Type-safe database operations
-- **SQLite/PostgreSQL** - Flexible database options
-
-**Event Collection**
-- **Playwright** - Reliable web scraping
-- **MCP Protocol** - Model Context Protocol integration
-- **Local-first** - No external dependencies required
-
----
-
-## 🎯 Perfect For
-
-**Madison Residents** looking for local cultural events  
-**Visitors** discovering what's happening in Wisconsin's capital  
-**Event Organizers** wanting a Facebook-free alternative  
-**Developers** who value privacy-first architecture  
-
----
-
-## ⚡ Production Deployment
-
-### One-Click Windows Launch
-```bash
-# Double-click this file for instant production setup
-start-prod-health.cmd
-```
-Automatically builds and serves on `http://localhost:3010`
-
-### Cloud Deployment (Vercel Recommended)
-```bash
-# Deploy to Vercel
-vercel --prod
-```
-
-### Docker Deployment
-```bash
-# Build and run container
-docker build -t local-events-madison .
-docker run -p 3000:3000 local-events-madison
-```
-
----
-
-## 🔧 Configuration
-
-**Madison-Specific Setup** in `config/madison.json`:
-- Neighborhood boundaries
-- Local venue database  
-- Cultural event categories
-- Default search parameters
-
-**Easily Adaptable** for other cities by updating configuration files.
-
----
-
-## 📊 Event Sources
-
-**Supported Sources:**
-- 🎭 Madison cultural venues
-- 🎵 Music venues and theaters  
-- 🏛️ UW-Madison events
-- 🌮 Local festivals and markets
-- 🎨 Art galleries and museums
-
-**Collection Methods:**
-- Venue website scraping
-- RSS/iCal feed parsing
-- JSON-LD structured data
-- Manual source submission
-
----
-
-## 🔒 Privacy & Security
-
-✅ **No User Tracking** - Zero analytics or fingerprinting  
-✅ **No Social Logins** - No Facebook/Google dependencies  
-✅ **Local Database** - Your data stays on your server  
-✅ **CSP Headers** - Content Security Policy protection  
-✅ **Rate Limiting** - Respectful scraping practices  
-
----
-
-## 🧪 Development & Testing
+After `next start` run:
 
 ```bash
-# Development workflow
-npm run dev          # Start dev server
-npm run typecheck    # TypeScript validation  
-npm run lint         # Code quality checks
-npm run test:unit    # Vitest unit tests
-npm run test:e2e     # Playwright end-to-end tests
-
-# Database management
-npm run db:generate  # Generate Prisma client
-npm run db:push      # Deploy schema changes
-npm run db:seed      # Add sample Madison events
-
-# Event collection
-npm run scrape:once  # Manual event collection
+BASE_URL=http://localhost:3010 node scripts/e2e-health-check.js
 ```
 
----
+- Captures a screenshot at `tests/outputs/health-page.png`
+- Prints browser console errors (helpful for CSP/hydration issues)
 
-## 📈 Performance
+## CSP & Security
 
-**Lightning Fast Loading**
-- Server-side rendering with Next.js
-- SQLite for sub-millisecond queries
-- Efficient image optimization
-- Progressive enhancement
+- We ship sane defaults in `next.config.js` so pages render reliably:
+  - `script-src` allows `'unsafe-inline'` and `blob:` (Next.js hydration inline scripts)
+  - Dev also allows `ws:` for HMR
+  - `worker-src 'self' blob:` for web workers
+- Want stricter CSP? We can switch to nonces/hashes and remove `'unsafe-inline'`.
 
-**Monitoring & Health Checks**
+## City Config
+
+- City theming/data in `config/madison.json`
+- Load via `loadCityConfig()` from `lib/city-config.ts`
+
+## Linting
+
+- ESLint is configured in `.eslintrc.cjs`. Builds skip lint to keep shipping fast.
+- Run `npm run lint` locally; we can fix the codebase in batches.
+
+## Available Scripts
+
+- `npm run dev` - Start development server
+- `npm run build` - Build production application
+- `npm run start` - Start production server
+- `npm run lint` - Run ESLint
+- `npm run typecheck` - Run TypeScript compiler check
+- `npm run test:unit` - Run Vitest unit tests
+- `npm run test:e2e` - Run Playwright E2E tests
+- `npm run test` - Run Jest integration tests
+- `npm run db:generate` - Generate Prisma client
+- `npm run db:push` - Push database schema
+- `npm run db:seed` - Seed database with sample data
+- `npm run scrape:once` - Run single scraping session
+
+## Database Setup
+
+The application uses SQLite by default. To use PostgreSQL:
+
+1. Update `DATABASE_URL` in `.env.local`
+2. Run `npm run db:push` to apply schema
+3. Run `npm run db:seed` for sample data
+
+## Environment Variables
+
+Required variables (copy from `.env.example`):
+- `DATABASE_URL` - Database connection string
+- `NEXTAUTH_SECRET` - Authentication secret
+- `NEXTAUTH_URL` - Application URL
+
+Optional:
+- `REDIS_URL` - Redis cache connection
+- `FIRECRAWL_API_KEY` - Firecrawl service key
+
+## Architecture
+
+### Database Schema
+- **Cities** - Location data
+- **Neighborhoods** - City subdivisions
+- **Venues** - Event locations
+- **Events** - Event data
+- **EventSources** - Scraping sources
+- **ScrapingLogs** - Collection history
+
+### Event Collection
+1. Configure sources in admin panel
+2. Run scraping via MCP/Playwright
+3. Process and deduplicate events
+4. Display to users with filtering
+
+## Deployment
+
+### Vercel (Recommended)
+1. Connect GitHub repository
+2. Set environment variables
+3. Deploy automatically on push
+
+### Docker
 ```bash
-# Automated health verification
-npm run test:e2e
-# Screenshot capture: tests/outputs/health-page.png
+docker build -t local-events .
+docker run -p 3000:3000 local-events
 ```
 
----
+### Traditional Hosting
+1. Build application: `npm run build`
+2. Copy `.next` folder to server
+3. Install production dependencies
+4. Start with `npm start`
 
-## 🤝 Contributing
+## Scraping Configuration
 
-This project is designed for Madison but can be adapted for any city:
+### Local Scraping (Free)
+- Uses Playwright with MCP for local event collection
+- SQLite database storage (no external dependencies)
+- Manual trigger: `npm run scrape:once`
+- Scheduled automation:
+  - Windows: Task Scheduler
+  - Linux/macOS: cron jobs
 
-1. **Fork the repository**
-2. **Update `config/[city].json`** with your location
-3. **Modify venue sources** for your area
-4. **Test with local events**
-5. **Submit pull request**
+### Source Management
+- Add venue websites through admin interface
+- Configure scraping selectors for each source
+- Prefer structured data (JSON-LD, RSS, iCal) when available
+- Respect robots.txt and rate limits
 
-**City Adaptation Guide:** See `docs/FORK_GUIDE.md`
+### Social Media Integration
+- Facebook Events API has limited public access
+- Instagram Graph API only for owned business accounts
+- Recommend focusing on venue websites and official sources
 
----
+## Troubleshooting
 
-## 📄 License
+### Windows EPERM Error
+If Prisma shows permission errors on Windows:
+1. Close all Node.js/Next.js processes
+2. Delete `node_modules/.prisma` folder
+3. Run `npm run db:generate`
 
-MIT License - Build your own local events platform!
+### Database Issues
+- Ensure SQLite file permissions are correct
+- For PostgreSQL, verify connection string format
+- Check database exists and is accessible
 
----
+### Development Server
+- Default port is 3000, auto-finds free port if occupied
+- Health endpoint at `/api/health` shows database connectivity
+- Check console for detailed error messages
 
-## 🔗 Links
+## License
 
-- **Live Demo:** [Coming Soon]
-- **Documentation:** `./docs/`
-- **Issue Tracker:** GitHub Issues
-- **City Adaptation:** `docs/FORK_GUIDE.md`
-
----
-
-*Built with ❤️ for the Madison community. No Facebook required.*
+MIT License - see LICENSE file for details.
