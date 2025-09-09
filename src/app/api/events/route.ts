@@ -248,6 +248,6 @@ export async function POST(_request: NextRequest) {
 }
 
 // Provide a default export for tests to import easily
-export default { GET, POST };
+// Next.js App Router uses named exports for HTTP methods
 
 // Note: Next.js App Router uses named HTTP method exports at runtime.

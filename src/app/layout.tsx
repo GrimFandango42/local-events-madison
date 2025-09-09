@@ -80,8 +80,13 @@ export default function RootLayout({
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         {/* DNS prefetch for known domains */}
         <link rel="dns-prefetch" href="//localhost" />
-        {/* Favicon */}
+        {/* Favicon and PWA */}
         <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+        <link rel="manifest" href="/manifest.json" />
+        <link rel="apple-touch-icon" href="/favicon.svg" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="mobile-web-app-capable" content="yes" />
       </head>
       <body className={`${inter.className} h-full antialiased`}>
         <ServiceWorkerProvider>

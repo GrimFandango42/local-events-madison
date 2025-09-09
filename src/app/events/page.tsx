@@ -5,6 +5,10 @@ import { useState, useEffect } from 'react';
 import { Search, Calendar, MapPin } from 'lucide-react';
 import type { EventWithDetails, EventFilters } from '@/lib/types';
 import EventCard from '@/components/EventCard';
+import { EventCardSkeletonGrid } from '@/components/EventCardSkeleton';
+import { MobileBottomNav } from '@/components/MobileNavigation';
+import ImprovedErrorState, { LoadingError, EmptyState } from '@/components/ImprovedErrorStates';
+import SearchAutocomplete from '@/components/SearchAutocomplete';
 
 interface Neighborhood {
   id: string;
@@ -103,7 +107,7 @@ export default function EventsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 pb-16 md:pb-0">
       {/* Header */}
       <div className="bg-white shadow-sm border-b">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -129,24 +133,23 @@ export default function EventsPage() {
             {/* Search Row */}
             <div className="flex flex-col lg:flex-row gap-4">
               <div className="flex-1">
-                <div className="relative">
-                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
-                  <input
-                    type="search"
-                    placeholder="Search events by name, description, venue..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    onKeyPress={handleKeyPress}
-                    className="w-full pl-10 pr-4 py-3 min-h-[44px] border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
-                    data-testid="search-input"
-                  />
-                </div>
+                <SearchAutocomplete
+                  value={searchTerm}
+                  onChange={setSearchTerm}
+                  onSearch={(term) => {
+                    setSearchTerm(term);
+                    setSearchLoading(true);
+                    setFilters({ ...filters, search: term });
+                    setTimeout(() => setSearchLoading(false), 500);
+                  }}
+                  placeholder="Search events by name, description, venue..."
+                />
               </div>
               
               <button
                 onClick={handleSearch}
                 disabled={searchLoading}
-                className="btn-primary flex items-center gap-2 px-6 py-3 min-h-[44px] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="btn-primary flex items-center gap-2 px-6 py-3 min-h-[48px] mobile-touch-target disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <Search className="w-4 h-4" />
                 Search
@@ -208,7 +211,7 @@ export default function EventsPage() {
                 <div className="flex items-end">
                   <button
                     onClick={clearFilters}
-                    className="px-4 py-3 min-h-[44px] text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+                    className="px-4 py-3 min-h-[48px] mobile-touch-target text-sm text-gray-600 border border-gray-300 rounded-lg hover:bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
                   >
                     Clear Filters ({getActiveFiltersCount()})
                   </button>
@@ -220,30 +223,20 @@ export default function EventsPage() {
 
         {/* Error State */}
         {error && (
-          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-6">
-            <div className="flex items-center">
-              <div className="text-red-600 text-sm">{error}</div>
-              <button
-                onClick={() => {
-                  setError(null);
-                  fetchEvents();
-                }}
-                className="ml-auto text-red-600 hover:text-red-700 text-sm font-medium px-3 py-2 min-h-[44px] rounded-lg hover:bg-red-50"
-              >
-                Try Again
-              </button>
-            </div>
+          <div className="mb-6">
+            <LoadingError 
+              title="Failed to load events"
+              onRetry={() => {
+                setError(null);
+                fetchEvents();
+              }}
+            />
           </div>
         )}
 
         {/* Events List */}
         {loading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="text-center">
-              <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-              <p className="text-gray-600">Loading events...</p>
-            </div>
-          </div>
+          <EventCardSkeletonGrid count={9} />
         ) : events.length > 0 ? (
           <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
             {events.map((event, index) => (
@@ -255,26 +248,24 @@ export default function EventsPage() {
             ))}
           </div>
         ) : (
-          <div className="text-center py-16">
-            <Calendar className="w-20 h-20 text-gray-300 mx-auto mb-6" />
-            <h3 className="text-xl font-semibold text-gray-600 mb-3">No Events Found</h3>
-            <p className="text-gray-500 mb-6 max-w-md mx-auto">
-              {getActiveFiltersCount() > 0 
+          <div className="py-16">
+            <ImprovedErrorState
+              type={getActiveFiltersCount() > 0 ? "search" : "notFound"}
+              title={getActiveFiltersCount() > 0 ? "No Results Found" : "No Events Available"}
+              message={getActiveFiltersCount() > 0 
                 ? "No events match your current filters. Try adjusting your search criteria."
                 : "No events are currently available. Check back later for new events."
               }
-            </p>
-            {getActiveFiltersCount() > 0 && (
-              <button
-                onClick={clearFilters}
-                className="btn-primary min-h-[44px] px-6 py-3"
-              >
-                Clear All Filters
-              </button>
-            )}
+              actionLabel={getActiveFiltersCount() > 0 ? "Clear All Filters" : "Browse All Categories"}
+              onAction={getActiveFiltersCount() > 0 ? clearFilters : undefined}
+              showHomeButton={getActiveFiltersCount() === 0}
+            />
           </div>
         )}
       </div>
+      
+      {/* Mobile Bottom Navigation */}
+      <MobileBottomNav currentPath="/events" />
     </div>
   );
 }

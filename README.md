@@ -1,16 +1,14 @@
-# Local Events Platform
+# Madison Events
 
-A web application for aggregating and discovering local events. Currently configured for Madison, WI but can be adapted for other cities.
+![Madison Events Homepage](./docs/homepage-screenshot.png)
+
+**Privacy-focused event discovery for Wisconsin's capital.**  
+Discover concerts, festivals, food events, and community gatherings across Madison without Facebook tracking.
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Next.js](https://img.shields.io/badge/Next.js-14-black)](https://nextjs.org/)
 [![TypeScript](https://img.shields.io/badge/TypeScript-5.0-blue)](https://www.typescriptlang.org/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind-3.4-38B2AC)](https://tailwindcss.com/)
-
-## Screenshot
-
-![Local Events Homepage](./screenshots/01-homepage-main-events.png)
-*Event aggregation interface showing Madison events*
 
 ## Features
 
