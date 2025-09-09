@@ -1,5 +1,22 @@
 // Type definitions for the Local Events platform
 import type { Venue, EventSource, Event, ScrapingLog } from '@prisma/client';
+import type { Session } from 'next-auth';
+import type { JWT } from 'next-auth/jwt';
+
+// NextAuth type extensions for Google Calendar integration
+declare module 'next-auth' {
+  interface Session {
+    accessToken?: string;
+    refreshToken?: string;
+  }
+}
+
+declare module 'next-auth/jwt' {
+  interface JWT {
+    accessToken?: string;
+    refreshToken?: string;
+  }
+}
 
 // Extended types with relations
 export type VenueWithSources = Venue & {

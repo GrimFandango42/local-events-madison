@@ -5,6 +5,7 @@ import './globals.css';
 import ErrorBoundary from '@/components/ErrorBoundary';
 import ServiceWorkerProvider from '@/components/ServiceWorkerProvider';
 import PerformanceMonitor from '@/components/PerformanceMonitor';
+import SessionProvider from '@/components/SessionProvider';
 
 // Optimized font loading with display: swap for better performance
 const inter = Inter({ 
@@ -89,6 +90,7 @@ export default function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
       <body className={`${inter.className} h-full antialiased`}>
+        <SessionProvider>
         <ServiceWorkerProvider>
           <ErrorBoundary>
             <div className="min-h-full">
@@ -97,6 +99,7 @@ export default function RootLayout({
           </ErrorBoundary>
           <PerformanceMonitor />
         </ServiceWorkerProvider>
+        </SessionProvider>
       </body>
     </html>
   );

@@ -5,8 +5,7 @@ import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { Calendar, MapPin, Search, Sparkles, Music, Utensils, Palette, Users, ArrowRight } from 'lucide-react';
 import type { EventWithDetails, DashboardStats } from '@/lib/types';
-import EnhancedEventCard from '@/components/EnhancedEventCard';
-import AuthButton from '@/components/AuthButton';
+import EventCard from '@/components/EventCard';
 import { FeaturedEventsSkeleton, RecentEventsSkeleton } from '@/components/EventCardSkeleton';
 import MobileNavigation, { MobileBottomNav } from '@/components/MobileNavigation';
 import ImprovedErrorState, { EmptyState } from '@/components/ImprovedErrorStates';
@@ -94,7 +93,6 @@ export default function HomePage() {
               >
                 Find Events
               </Link>
-              <AuthButton />
             </div>
             
             {/* Mobile Navigation */}
@@ -180,7 +178,7 @@ export default function HomePage() {
             <div className="grid md:grid-cols-3 gap-8 mb-8">
               {featuredEvents.map((event, index) => (
                 <div key={event.id} className="transform hover:scale-105 transition-transform">
-                  <EnhancedEventCard 
+                  <EventCard 
                     event={event} 
                     priority={index === 0}
                   />
@@ -220,7 +218,7 @@ export default function HomePage() {
             
             <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
               {recentEvents.slice(0, 8).map((event, index) => (
-                <EnhancedEventCard 
+                <EventCard 
                   key={event.id} 
                   event={event} 
                   priority={false}
