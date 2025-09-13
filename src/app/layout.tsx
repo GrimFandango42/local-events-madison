@@ -3,9 +3,14 @@ import type { Metadata, Viewport } from 'next';
 import { Inter } from 'next/font/google';
 import './globals.css';
 import ErrorBoundary from '@/components/ErrorBoundary';
+import ApiErrorBoundary from '@/components/ApiErrorBoundary';
 import ServiceWorkerProvider from '@/components/ServiceWorkerProvider';
 import PerformanceMonitor from '@/components/PerformanceMonitor';
 import SessionProvider from '@/components/SessionProvider';
+import { PersonalPaletteProvider } from '@/contexts/PersonalPaletteContext';
+import { PersonalEventsProvider } from '@/contexts/PersonalEventsContext';
+import { ViewModeProvider } from '@/contexts/ViewModeContext';
+// import { ThemeProvider } from '@/contexts/ThemeContext';
 
 // Optimized font loading with display: swap for better performance
 const inter = Inter({ 
@@ -90,16 +95,27 @@ export default function RootLayout({
         <meta name="mobile-web-app-capable" content="yes" />
       </head>
       <body className={`${inter.className} h-full antialiased`}>
-        <SessionProvider>
-        <ServiceWorkerProvider>
-          <ErrorBoundary>
-            <div className="min-h-full">
-              {children}
-            </div>
-          </ErrorBoundary>
-          <PerformanceMonitor />
-        </ServiceWorkerProvider>
-        </SessionProvider>
+        <ErrorBoundary>
+          <SessionProvider>
+            <ViewModeProvider>
+              <PersonalPaletteProvider>
+                <PersonalEventsProvider>
+                  <ServiceWorkerProvider>
+                    <ApiErrorBoundary
+                      apiEndpoint="application-wide"
+                      operation="application initialization"
+                    >
+                      <div className="min-h-full">
+                        {children}
+                      </div>
+                    </ApiErrorBoundary>
+                    <PerformanceMonitor />
+                  </ServiceWorkerProvider>
+                </PersonalEventsProvider>
+              </PersonalPaletteProvider>
+            </ViewModeProvider>
+          </SessionProvider>
+        </ErrorBoundary>
       </body>
     </html>
   );

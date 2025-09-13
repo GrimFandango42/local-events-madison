@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 import { Heart, HeartIcon } from 'lucide-react';
 import Link from 'next/link';
+import ApiErrorBoundary from './ApiErrorBoundary';
 
 interface FavoriteButtonProps {
   eventId: string;
@@ -11,7 +12,7 @@ interface FavoriteButtonProps {
   className?: string;
 }
 
-export default function FavoriteButton({ eventId, eventTitle, className = '' }: FavoriteButtonProps) {
+function FavoriteButtonComponent({ eventId, eventTitle, className = '' }: FavoriteButtonProps) {
   const { data: session, status } = useSession();
   const [isFavorited, setIsFavorited] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -99,6 +100,7 @@ export default function FavoriteButton({ eventId, eventTitle, className = '' }: 
           : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200 hover:border-pink-200 hover:text-pink-700'
       } ${className}`}
       title={isFavorited ? `Remove "${eventTitle}" from favorites` : `Add "${eventTitle}" to favorites`}
+      data-testid="favorite-button"
     >
       {isLoading ? (
         <div className="w-4 h-4 border-2 border-gray-300 border-t-pink-600 rounded-full animate-spin" />
@@ -115,5 +117,24 @@ export default function FavoriteButton({ eventId, eventTitle, className = '' }: 
         {isLoading ? 'Saving...' : isFavorited ? 'Favorited' : 'Favorite'}
       </span>
     </button>
+  );
+}
+
+export default function FavoriteButton(props: FavoriteButtonProps) {
+  const retryFavoriteOperation = async () => {
+    // Implement retry logic for favorite operations
+    console.log('Retrying favorite operation for event:', props.eventId);
+    // In a real implementation, you might refresh the component state
+    // or re-trigger the API call
+  };
+
+  return (
+    <ApiErrorBoundary
+      apiEndpoint="/api/favorites"
+      operation="manage favorites"
+      onRetry={retryFavoriteOperation}
+    >
+      <FavoriteButtonComponent {...props} />
+    </ApiErrorBoundary>
   );
 }

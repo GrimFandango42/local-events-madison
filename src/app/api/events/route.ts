@@ -1,28 +1,76 @@
 // API route for events with caching, validation, and performance optimizations (2025 best practices)
 import { NextRequest, NextResponse } from 'next/server';
 import { prisma } from '@/lib/db';
-import { withCache, cacheKeys, createCacheKey } from '@/lib/cache';
-import { EventFiltersSchema, PaginationSchema, validateRequest, sanitizeHtml } from '@/lib/validation';
+import cache, { withCache, cacheKeys, createCacheKey, cacheSearchResults } from '@/lib/cache';
+import { EventFiltersSchema, PaginationSchema, validateRequest, sanitizeInput } from '@/lib/validation';
+import { GetEventsQuerySchema } from '@/lib/validation/apiSchemas';
+import { validateSearchParams } from '@/lib/middleware/validation';
+import { 
+  validateRequestOrigin, 
+  checkRateLimit,
+  securityHeaders
+} from '@/lib/security';
 import { DateTime } from 'luxon';
 import type { EventFilters, PaginatedResponse, EventWithDetails } from '@/lib/types';
 import type { Prisma } from '@prisma/client';
 
 export async function GET(request: NextRequest) {
   try {
+    // Security: Validate request origin
+    if (!validateRequestOrigin(request)) {
+      return NextResponse.json(
+        { success: false, error: 'Invalid request origin' },
+        { status: 403, headers: securityHeaders }
+      );
+    }
+
+    // Security: Rate limiting (more permissive in development)
+    const clientIP = request.headers.get('x-forwarded-for') ||
+                     request.headers.get('x-real-ip') ||
+                     '127.0.0.1';
+
+    // Development: More permissive rate limiting for localhost
+    const isDevelopment = process.env.NODE_ENV === 'development';
+    const isLocalhost = clientIP === '127.0.0.1' || clientIP.startsWith('::1');
+
+    const maxRequests = isDevelopment && isLocalhost ? 1000 : 100; // 1000 for dev, 100 for prod
+    const windowMs = isDevelopment && isLocalhost ? 60 * 60 * 1000 : 15 * 60 * 1000; // 1 hour for dev, 15 min for prod
+
+    const rateLimit = checkRateLimit(clientIP, maxRequests, windowMs);
+    
+    if (!rateLimit.allowed) {
+      return NextResponse.json(
+        { 
+          success: false, 
+          error: 'Too many requests',
+          resetTime: rateLimit.resetTime 
+        },
+        { 
+          status: 429,
+          headers: {
+            ...securityHeaders,
+            'Retry-After': Math.ceil((rateLimit.resetTime - Date.now()) / 1000).toString(),
+            'X-RateLimit-Remaining': '0',
+            'X-RateLimit-Reset': rateLimit.resetTime.toString()
+          }
+        }
+      );
+    }
+
     // Support absolute and relative URLs (for tests)
     const base = process.env.LOCAL_EVENTS_API_URL || process.env.NEXTAUTH_URL || 'http://localhost:3000';
     const { searchParams } = new URL(request.url, base);
     
-    // Validate and sanitize input parameters
+    // Enhanced validation and sanitization of input parameters
     const rawFilters = {
-      category: searchParams.get('category')?.split(','),
-      dateFrom: searchParams.get('dateFrom') || undefined,
-      dateTo: searchParams.get('dateTo') || undefined,
-      venueId: searchParams.get('venueId') || undefined,
-      tags: searchParams.get('tags')?.split(','),
+      category: searchParams.get('category')?.split(',').map(c => sanitizeInput(c)),
+      dateFrom: searchParams.get('dateFrom') ? sanitizeInput(searchParams.get('dateFrom')!) : undefined,
+      dateTo: searchParams.get('dateTo') ? sanitizeInput(searchParams.get('dateTo')!) : undefined,
+      venueId: searchParams.get('venueId') ? sanitizeInput(searchParams.get('venueId')!) : undefined,
+      tags: searchParams.get('tags')?.split(',').map(t => sanitizeInput(t)),
       priceMax: searchParams.get('priceMax') ? parseInt(searchParams.get('priceMax')!) : undefined,
-      search: searchParams.get('search') ? sanitizeHtml(searchParams.get('search')!) : undefined,
-      neighborhood: searchParams.get('neighborhood') ? sanitizeHtml(searchParams.get('neighborhood')!) : undefined,
+      search: searchParams.get('search') ? sanitizeInput(searchParams.get('search')!) : undefined,
+      neighborhood: searchParams.get('neighborhood') ? sanitizeInput(searchParams.get('neighborhood')!) : undefined,
     };
     
     const filtersValidation = validateRequest(EventFiltersSchema, rawFilters);
@@ -100,8 +148,13 @@ export async function GET(request: NextRequest) {
         });
       }
     } else {
-      // By default, only show future events
-      where.startDateTime = { gte: DateTime.now().setZone('America/Chicago').toJSDate() };
+      // For development/demo, show events from the past week to next month
+      // This ensures seeded events are visible regardless of timezone issues
+      const now = DateTime.now().setZone('America/Chicago');
+      where.startDateTime = { 
+        gte: now.minus({ days: 7 }).toJSDate(),
+        lte: now.plus({ days: 60 }).toJSDate()
+      };
     }
 
     if (filters.venueId) {
@@ -134,98 +187,117 @@ export async function GET(request: NextRequest) {
       };
     }
 
-    // Create cache key based on filters and pagination
-    const cacheKey = createCacheKey(
-      'events',
-      page.toString(),
-      limit.toString(),
-      JSON.stringify(filters)
-    );
+    // Create optimized cache key based on filters and pagination
+    const filtersHash = JSON.stringify(filters);
+    const cacheKey = cacheKeys.events.page(page, limit, filtersHash);
 
-    // Cache events data for better performance (1 minute for search results)
-    const response = await withCache(
-      cacheKey,
-      async (): Promise<PaginatedResponse<EventWithDetails>> => {
-        // Optimized parallel queries with selective fields
-        const orderBy: any = process.env.JEST_WORKER_ID
-          ? { createdAt: 'desc' }
-          : { startDateTime: 'asc' };
-
-        const [events, total] = await Promise.all([
-          prisma.event.findMany({
-            where,
-            select: {
-              id: true,
-              title: true,
-              description: true,
-              category: true,
-              startDateTime: true,
-              endDateTime: true,
-              timezone: true,
-              allDay: true,
-              price: true,
-              ticketUrl: true,
-              imageUrl: true,
-              tags: true,
-              customLocation: true,
-              sourceUrl: true,
-              status: true,
-              venue: {
-                select: {
-                  id: true,
-                  name: true,
-                  venueType: true,
-                  address: true,
-                  city: true,
-                  state: true,
-                  neighborhood: true,
-                  website: true,
-                },
-              },
-              source: {
-                select: {
-                  id: true,
-                  name: true,
-                  sourceType: true,
-                },
-              },
-              createdAt: true,
-            },
-            orderBy,
-            skip,
-            take: limit,
-          }),
-          prisma.event.count({ where }),
-        ]);
-
-        if (process.env.JEST_WORKER_ID) {
-          console.log('Date range result sample', events.map((e: any) => e.startDateTime));
-        }
-        return {
-          success: true,
-          data: events as EventWithDetails[],
-          pagination: {
-            page,
-            limit,
-            total,
-            totalPages: Math.ceil(total / limit),
-            hasNext: skip + limit < total,
-            hasMore: skip + limit < total,
-            hasPrev: page > 1,
+    // Use specialized caching for search vs regular results
+    const response = filters.search 
+      ? await cacheSearchResults(
+          filters.search,
+          filtersHash,
+          page,
+          async (): Promise<PaginatedResponse<EventWithDetails>> => {
+            return await fetchEventsData();
+          }
+        )
+      : await withCache(
+          cacheKey,
+          async (): Promise<PaginatedResponse<EventWithDetails>> => {
+            return await fetchEventsData();
           },
-        };
-      },
-      filters.search ? 30 : 60 // Cache search results for 30s, regular results for 1 minute
-    );
+          120 // 2 minutes for regular event listings
+        );
 
+    async function fetchEventsData(): Promise<PaginatedResponse<EventWithDetails>> {
+      // Optimized parallel queries with selective fields
+      const orderBy: any = process.env.JEST_WORKER_ID
+        ? { createdAt: 'desc' }
+        : { startDateTime: 'asc' };
+
+      const [events, total] = await Promise.all([
+        prisma.event.findMany({
+          where,
+          select: {
+            id: true,
+            title: true,
+            description: true,
+            category: true,
+            startDateTime: true,
+            endDateTime: true,
+            timezone: true,
+            allDay: true,
+            price: true,
+            ticketUrl: true,
+            imageUrl: true,
+            tags: true,
+            customLocation: true,
+            sourceUrl: true,
+            status: true,
+            venue: {
+              select: {
+                id: true,
+                name: true,
+                venueType: true,
+                address: true,
+                city: true,
+                state: true,
+                neighborhood: true,
+                website: true,
+              },
+            },
+            source: {
+              select: {
+                id: true,
+                name: true,
+                sourceType: true,
+              },
+            },
+            createdAt: true,
+          },
+          orderBy,
+          skip,
+          take: limit,
+        }),
+        prisma.event.count({ where }),
+      ]);
+
+      if (process.env.JEST_WORKER_ID) {
+        console.log('Date range result sample', events.map((e: any) => e.startDateTime));
+      }
+      
+      return {
+        success: true,
+        data: events as EventWithDetails[],
+        pagination: {
+          page,
+          limit,
+          total,
+          totalPages: Math.ceil(total / limit),
+          hasNext: skip + limit < total,
+          hasMore: skip + limit < total,
+          hasPrev: page > 1,
+        },
+      };
+    }
+
+    // Get cache performance stats for monitoring
+    const cacheStats = cache.getStats();
+    
     return NextResponse.json(
       response,
       {
         headers: {
+          ...securityHeaders,
           'Cache-Control': filters.search 
             ? 'public, s-maxage=30, stale-while-revalidate=60'
-            : 'public, s-maxage=60, stale-while-revalidate=120',
+            : 'public, s-maxage=120, stale-while-revalidate=240',
           'Content-Type': 'application/json',
+          'X-RateLimit-Remaining': rateLimit.remaining.toString(),
+          'X-RateLimit-Reset': rateLimit.resetTime.toString(),
+          'X-Cache-Hit-Rate': cacheStats.overall.hitRate.toFixed(2),
+          'X-Cache-Backend': cacheStats.redis.connected ? 'redis+memory' : 'memory',
+          'X-Cache-Key': cacheKey,
         },
       }
     );
