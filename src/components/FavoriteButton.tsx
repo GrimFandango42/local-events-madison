@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useSession } from 'next-auth/react';
 import { Heart, HeartIcon } from 'lucide-react';
 import Link from 'next/link';
@@ -10,12 +10,15 @@ interface FavoriteButtonProps {
   eventId: string;
   eventTitle: string;
   className?: string;
+  onFavoriteChanged?: (eventId: string, isFavorited: boolean) => void;
 }
 
-function FavoriteButtonComponent({ eventId, eventTitle, className = '' }: FavoriteButtonProps) {
+function FavoriteButtonComponent({ eventId, eventTitle, className = '', onFavoriteChanged }: FavoriteButtonProps) {
   const { data: session, status } = useSession();
   const [isFavorited, setIsFavorited] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
+  const [isOptimistic, setIsOptimistic] = useState(false);
+  const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Check if event is favorited on mount and when session changes
   useEffect(() => {
@@ -36,14 +39,28 @@ function FavoriteButtonComponent({ eventId, eventTitle, className = '' }: Favori
     }
   };
 
-  const toggleFavorite = async (e: React.MouseEvent) => {
+  const toggleFavorite = useCallback(async (e: React.MouseEvent) => {
     e.preventDefault();
     e.stopPropagation();
-    
-    if (!session?.user) return;
 
+    if (!session?.user || isLoading) return;
+
+    // Clear any pending timeout
+    if (timeoutRef.current) {
+      clearTimeout(timeoutRef.current);
+    }
+
+    // IMMEDIATE visual update - no async, no delays
+    const newState = !isFavorited;
+    setIsFavorited(newState);
+    setIsOptimistic(true);
+
+    // Immediately call parent callback for instant UI updates
+    onFavoriteChanged?.(eventId, newState);
+
+    // Background API call (non-blocking)
     setIsLoading(true);
-    
+
     try {
       const response = await fetch('/api/favorites/toggle', {
         method: 'POST',
@@ -54,16 +71,27 @@ function FavoriteButtonComponent({ eventId, eventTitle, className = '' }: Favori
       });
 
       const data = await response.json();
-      
+
       if (data.success) {
+        // Confirm optimistic update was correct
         setIsFavorited(data.isFavorited);
+        onFavoriteChanged?.(eventId, data.isFavorited);
+      } else {
+        // Revert immediately
+        setIsFavorited(!newState);
+        onFavoriteChanged?.(eventId, !newState);
+        throw new Error(data.error || 'Failed to toggle favorite');
       }
     } catch (error) {
       console.error('Error toggling favorite:', error);
+      // Revert optimistic update immediately
+      setIsFavorited(!newState);
+      onFavoriteChanged?.(eventId, !newState);
     } finally {
       setIsLoading(false);
+      setIsOptimistic(false);
     }
-  };
+  }, [session?.user, isFavorited, isLoading, eventId, onFavoriteChanged]);
 
   // Loading state during auth check
   if (status === 'loading') {
@@ -94,7 +122,7 @@ function FavoriteButtonComponent({ eventId, eventTitle, className = '' }: Favori
     <button
       onClick={toggleFavorite}
       disabled={isLoading}
-      className={`inline-flex items-center gap-2 px-3 py-2 text-sm transition-all rounded-lg disabled:opacity-50 disabled:cursor-not-allowed ${
+      className={`inline-flex items-center gap-2 px-3 py-2 text-sm rounded-lg disabled:opacity-50 disabled:cursor-not-allowed ${
         isFavorited
           ? 'bg-pink-100 text-pink-700 border border-pink-200 hover:bg-pink-200'
           : 'bg-white text-gray-700 hover:bg-gray-50 border border-gray-200 hover:border-pink-200 hover:text-pink-700'
